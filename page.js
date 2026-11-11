@@ -37,6 +37,13 @@
     set('ngramNote', '表內為示意次數；實際頁面使用匯出的 bigram ' + m.bigram_entries + ' 組真實計數。');
     set('pplNote', '驗證集困惑度 ' + (+m.mlp_val_ppl).toFixed(1) + ' 高於訓練集 ' +
       (+m.mlp_train_ppl).toFixed(1) + '，說明模型對沒背過的組合仍不擅長預測。');
+    set('embDim', EMB);
+    var loss = DATA.loss || [];
+    if (loss.length) {
+      set('lossCap', 'cross-entropy · ' + loss.length + ' epochs');
+      set('lossNote', '損失由 ' + loss[0].toFixed(3) + ' 降到 ' + loss[loss.length - 1].toFixed(3) +
+        '，對應訓練困惑度約 ' + (+m.mlp_train_ppl).toFixed(1) + '。');
+    }
   })();
 
   /* ---------- int8 反量化 ---------- */
@@ -622,7 +629,96 @@
       }]
     });
 
-    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); });
+    /* ---------- 字向量座標圖 ---------- */
+    var EMB_STYLE = {
+      zh:    { color: '#E7E1D2', label: '中文字' },
+      en:    { color: '#84A196', label: '英文字母' },
+      digit: { color: '#C0452E', label: '數字' },
+      punct: { color: '#8D887A', label: '標點' },
+      space: { color: '#5E5A50', label: '空格' },
+      sp:    { color: '#5E5A50', label: '特殊符號' }
+    };
+    var embChart = null;
+
+    function embSeries(filter) {
+      var byType = {}, hits = [];
+      (DATA.embmap || []).forEach(function (pt) {
+        var ch = pt[0], x = pt[1], y = pt[2], t = pt[3];
+        var hit = !!filter && ch.indexOf(filter) >= 0;
+        if (hit) { hits.push([x, y, ch]); }
+        else { (byType[t] = byType[t] || []).push([x, y, ch]); }
+      });
+      var series = Object.keys(EMB_STYLE).map(function (t) {
+        return {
+          name: EMB_STYLE[t].label, type: 'scatter', data: byType[t] || [],
+          symbolSize: 5, itemStyle: { color: EMB_STYLE[t].color, opacity: 0.62 }
+        };
+      });
+      if (hits.length) {
+        series.push({
+          name: '命中', type: 'scatter', data: hits, symbolSize: 10, zlevel: 2,
+          itemStyle: { color: '#C0452E', opacity: 0.95 }
+        });
+      }
+      return series;
+    }
+
+    function drawEmbMap() {
+      var box = el('embMap');
+      if (!box || !DATA.embmap) return;
+      if (typeof echarts === 'undefined') {
+        box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">字向量地圖需要 ECharts 連線載入；離線環境下可改看本機匯出的 模型.txt。</p>';
+        return;
+      }
+      embChart = echarts.init(box);
+      embChart.setOption({
+        backgroundColor: 'transparent',
+        grid: { left: 18, right: 18, top: 18, bottom: 28 },
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
+          textStyle: { color: '#E7E1D2', fontSize: 11 },
+          formatter: function (p) {
+            return esc(p.data[2]) + '　(' + p.data[0].toFixed(2) + ', ' + p.data[1].toFixed(2) + ')';
+          }
+        },
+        xAxis: {
+          type: 'value', min: -1.05, max: 1.05,
+          axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
+          axisTick: { show: false }, axisLabel: axisText,
+          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+        },
+        yAxis: {
+          type: 'value', min: -1.05, max: 1.05,
+          axisLine: { show: false }, axisTick: { show: false },
+          axisLabel: axisText,
+          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+        },
+        series: embSeries('')
+      });
+      embChart.on('click', function (p) {
+        var ch = p.data[2];
+        if (ch && ch[0] !== '<') {
+          el('prompt').value = ch;
+          el('console').scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+      var lg = el('embLegend');
+      if (lg) {
+        lg.innerHTML = Object.keys(EMB_STYLE).map(function (t) {
+          return '<span><i style="background:' + EMB_STYLE[t].color + '"></i>' + EMB_STYLE[t].label + '</span>';
+        }).join('');
+      }
+      var search = el('embSearch');
+      if (search) {
+        search.addEventListener('input', function () {
+          if (embChart) embChart.setOption({ series: embSeries(this.value.trim()) });
+        });
+      }
+    }
+
+    drawEmbMap();
+    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); if (embChart) embChart.resize(); });
   }
 
   if (document.readyState === 'complete') { drawCharts(); }

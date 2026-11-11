@@ -16,6 +16,7 @@ import json
 import os
 import pickle
 
+import numpy as np
 import torch
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +37,13 @@ def main() -> None:
     sd = pt["state_dict"]
     itos = pt["itos"]
     vocab = pt["vocab"]
+
+    # 字向量 PCA 二維座標（與網頁 embmap 同一投影）
+    E = sd["emb.weight"].detach().cpu().numpy().astype("float64")
+    Ec = E - E.mean(0, keepdims=True)
+    _U, _S, Vt = np.linalg.svd(Ec, full_matrices=False)
+    coord = Ec @ Vt[:2].T
+    coord = coord / (np.abs(coord).max() + 1e-9)
 
     lines: list[str] = []
     w = lines.append
@@ -68,11 +76,11 @@ def main() -> None:
         w(f"  epoch {i:2d}: {loss:.4f}")
     w("")
 
-    # 二、詞表
-    w("二、詞表（id → 字）")
+    # 二、詞表與二維座標
+    w("二、詞表與字向量座標（id → 字，PCA 二維 x / y）")
     w("-" * 40)
     for i, ch in enumerate(itos):
-        w(f"{i}\t{ch}")
+        w(f"{i}\t{ch}\t{coord[i, 0]:.3f}\t{coord[i, 1]:.3f}")
     w("")
 
     # 三、n-gram 統計

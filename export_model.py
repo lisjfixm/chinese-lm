@@ -10,6 +10,7 @@
 import base64
 import json
 import os
+import re
 from collections import defaultdict
 
 import numpy as np
@@ -53,6 +54,34 @@ def export_ngram(lm: NgramLM, bigram_topk: int = 10) -> dict:
         "unigram": {str(k): int(v) for k, v in lm.unigram.items()},
         "total_uni": int(lm.total_uni),
     }
+
+
+def token_type(ch: str) -> str:
+    if ch in ("<S>", "</S>", "<UNK>"):
+        return "sp"
+    if ch == " ":
+        return "space"
+    if re.match(r"[0-9]", ch):
+        return "digit"
+    if re.match(r"[a-z]", ch):
+        return "en"
+    if re.match(r"[一-鿿]", ch):
+        return "zh"
+    return "punct"
+
+
+def export_embmap(model: CharMLPLM, itos: list[str]) -> list:
+    """把 32 維字向量用 PCA 投影到二維，當成每個字元的「座標」。
+
+    回傳 [[字, x, y, 類型], ...]；座標正規化到約 [-1, 1]。
+    """
+    E = model.emb.weight.detach().cpu().numpy().astype("float64")
+    Ec = E - E.mean(0, keepdims=True)
+    U, S, Vt = np.linalg.svd(Ec, full_matrices=False)
+    co = Ec @ Vt[:2].T
+    co = co / (np.abs(co).max() + 1e-9)
+    return [[itos[i], round(float(co[i, 0]), 3), round(float(co[i, 1]), 3), token_type(itos[i])]
+            for i in range(len(itos))]
 
 
 def main() -> None:
@@ -118,6 +147,7 @@ def main() -> None:
             "dialogs": dialogs,
         },
         "itos": list(mlp["itos"]),
+        "embmap": export_embmap(model, mlp["itos"]),
         "sos": mlp["vocab"][SOS],
         "mlp": {
             "emb": quantize(model.emb.weight),
