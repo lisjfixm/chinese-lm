@@ -336,8 +336,10 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 }
 
 /* ---------- 位置 / 對話 ---------- */
-.cell .pos{position:absolute;top:4px;left:0;right:0;text-align:center;
-  font-family:var(--mono);font-size:9px;font-style:normal;color:#5E5A50;letter-spacing:.06em}
+.cell .pos{position:absolute;top:3px;left:0;right:0;text-align:center;
+  font-family:var(--mono);font-size:8px;font-style:normal;letter-spacing:.04em;line-height:1.25}
+.cell .pos .pn{display:block;color:#5E5A50}
+.cell .pos .pc{display:block;color:#84A196}
 .cell.empty .gl{color:rgba(231,225,210,.16)}
 .tk{display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;margin-right:2px}
 .tk i{font-family:var(--mono);font-style:normal;font-size:9.5px;color:#6F695E;line-height:1.2}
@@ -573,7 +575,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <div class="hrow"><span>前文</span><span>第 1 名</span><span>第 2 名</span><span>第 3 名</span></div>
           <div id="probeRows"></div>
         </div>
-        <p style="margin-top:14px;font-size:12.5px;color:#8D887A">字盤與輸出上方的數字，就是這個字落在第幾個位置。位置 1 最遠、位置 8 最近——越近的位置，對下一個字的影響越大。</p>
+        <p style="margin-top:14px;font-size:12.5px;color:#8D887A">字盤每格上方有兩行小字：第一行是位置序號（位置 1 最遠、位置 8 最近，越近對下一個字影響越大）；第二行是這個字的字向量二維座標（PCA 投影，對照下方「字元的座標」地圖）。</p>
       </div>
     </div>
   </div>

@@ -11,6 +11,14 @@
   var SH = DATA.mlp.shape;
   var EMB = SH.emb[1], HID = SH.fc1[0], IN = SH.fc1[1];
 
+  /* 字元 → PCA 二維座標 [x, y] */
+  var COORD = {};
+  (DATA.embmap || []).forEach(function (p) { COORD[p[0]] = [p[1], p[2]]; });
+  function coordText(ch) {
+    var c = COORD[ch];
+    return c ? c[0].toFixed(1) + ',' + c[1].toFixed(1) : '—';
+  }
+
   function el(id) { return document.getElementById(id); }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -194,15 +202,18 @@
   function clearBand() {
     for (var i = 0; i < cells.length; i++) {
       var g = cells[i].querySelector('.gl');
+      var p = cells[i].querySelector('.pos');
       if (g) g.textContent = '·';
+      if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span>';
       cells[i].classList.remove('filled', 'pop');
       cells[i].classList.add('empty');
     }
   }
   function paintCell(i, ch) {
     if (i >= cells.length) return;
-    var c = cells[i], g = c.querySelector('.gl');
+    var c = cells[i], g = c.querySelector('.gl'), p = c.querySelector('.pos');
     if (g) { g.textContent = ch; } else { c.textContent = ch; }
+    if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span><span class="pc">' + coordText(ch) + '</span>';
     c.classList.remove('empty');
     c.classList.add('filled', 'pop');
     setTimeout(function () { c.classList.remove('pop'); }, 320);
