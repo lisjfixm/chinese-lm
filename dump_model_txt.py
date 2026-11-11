@@ -79,42 +79,54 @@ def main() -> None:
     w("三、n-gram 統計表")
     w("-" * 40)
     w(f"平滑：add-k，k = {ng['k']}；線性插值權重 trigram 0.7 / bigram 0.2 / unigram 0.1。")
+    w("詞表擴大後 n-gram 表很大，本檔只摘錄可讀的摘要；完整計數表在 outputs/ngram_model.pkl。")
     w("")
     w("3.1 單字次數（unigram）　格式：字 次數")
     for tid, cnt in sorted(ng["unigram"].items(), key=lambda kv: -kv[1]):
         w(f"{itos[tid]}\t{cnt}")
     w("")
-    w("3.2 二字連接（bigram）　格式：前字 後字 次數")
+    w("3.2 二字連接（bigram，每個前文取前 5 個後接字）　格式：前字 後字 次數")
     for (prev,), nxts in sorted(ng["counts2"].items()):
-        for nxt, cnt in sorted(nxts.items(), key=lambda kv: -kv[1]):
+        top = sorted(nxts.items(), key=lambda kv: -kv[1])[:5]
+        for nxt, cnt in top:
             w(f"{itos[prev]}\t{itos[nxt]}\t{cnt}")
     w("")
-    w("3.3 三字連接（trigram）　格式：前兩字 後字 次數")
-    for (p2, p1), nxts in sorted(ng["counts"].items()):
-        for nxt, cnt in sorted(nxts.items(), key=lambda kv: -kv[1]):
-            w(f"{itos[p2]}{itos[p1]}\t{itos[nxt]}\t{cnt}")
+    # trigram 只列全局最常見的前 50 個三元組
+    tri_all = []
+    for (p2, p1), nxts in ng["counts"].items():
+        for nxt, cnt in nxts.items():
+            tri_all.append((cnt, p2, p1, nxt))
+    tri_all.sort(reverse=True)
+    w("3.3 三字連接（trigram，僅列全體最常見的前 50 個）　格式：前兩字 後字 次數")
+    for cnt, p2, p1, nxt in tri_all[:50]:
+        w(f"{itos[p2]}{itos[p1]}\t{itos[nxt]}\t{cnt}")
     w("")
 
-    # 四、MLP 權重
-    w("四、MLP 權重")
+    # 四、MLP 權重（摘錄：完整權重在 outputs/mlp_model.pt）
+    w("四、MLP 權重（摘錄）")
     w("-" * 40)
     w("網路：前 ctx 字 id → Embedding 查表 → 攤平 (ctx × emb) → Linear+tanh → Linear → softmax。")
-    w("每個矩陣一列一行；數值為浮點數，保留四位小數。")
+    w(f"完整權重共 {sum(t.numel() for t in sd.values())} 個參數，存於 outputs/mlp_model.pt；本檔只列矩陣形狀與前幾列樣本，數值保留四位小數。")
     w("")
 
-    def dump_matrix(name, tensor, row_label):
+    def sample_matrix(name, tensor, row_label, rows=5):
         t = tensor.detach().cpu()
         w(f"{row_label}　shape {list(t.shape)}")
-        rows = [t.tolist()] if t.dim() == 1 else t.tolist()
-        for r in rows:
-            w(" ".join(fmt(float(x)) for x in r))
+        if t.dim() == 1:
+            vals = t.tolist()[:rows]
+            w(" ".join(fmt(float(x)) for x in vals) + (" …" if len(t) > rows else ""))
+        else:
+            for r in t.tolist()[:rows]:
+                w(" ".join(fmt(float(x)) for x in r[:8]) + (" …" if len(r) > 8 else ""))
+            if t.shape[0] > rows:
+                w(f"…（其餘 {t.shape[0] - rows} 列略）")
         w("")
 
-    dump_matrix("emb.weight", sd["emb.weight"], "4.1 emb.weight（每字的向量）")
-    dump_matrix("fc1.weight", sd["fc1.weight"], "4.2 fc1.weight（隱藏層權重）")
-    dump_matrix("fc1.bias", sd["fc1.bias"], "4.3 fc1.bias（隱藏層偏置）")
-    dump_matrix("fc2.weight", sd["fc2.weight"], "4.4 fc2.weight（輸出層權重）")
-    dump_matrix("fc2.bias", sd["fc2.bias"], "4.5 fc2.bias（輸出層偏置）")
+    sample_matrix("emb.weight", sd["emb.weight"], "4.1 emb.weight（每字的向量）")
+    sample_matrix("fc1.weight", sd["fc1.weight"], "4.2 fc1.weight（隱藏層權重）")
+    sample_matrix("fc1.bias", sd["fc1.bias"], "4.3 fc1.bias（隱藏層偏置）")
+    sample_matrix("fc2.weight", sd["fc2.weight"], "4.4 fc2.weight（輸出層權重）")
+    sample_matrix("fc2.bias", sd["fc2.bias"], "4.5 fc2.bias（輸出層偏置）")
 
     # 五、推論說明
     w("五、推論方式（對照本專案程式）")

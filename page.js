@@ -16,6 +16,29 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  /* ---------- 把匯出的指標與維度填進靜態版面 ---------- */
+  (function fillMeta() {
+    var m = DATA.meta;
+    function set(id, txt) { var e = el(id); if (e) e.textContent = txt; }
+    set('topNote', 'char-level language model / ' + m.sentences + ' 句 / ' + V + ' 字 / ' + m.params + ' 參數');
+    set('ledeCount', m.sentences + ' 句中英句子');
+    set('statSent', m.sentences + ' 句');
+    set('statVocab', V + ' 字');
+    set('statPpl', (+m.mlp_val_ppl).toFixed(1));
+    set('statCtx', CTX + ' 字');
+    set('mlpDesc', '每個字先查成一條 ' + EMB + ' 維的向量，' + CTX + ' 個字接起來變成 ' + IN +
+      ' 維，穿過一層 tanh 隱藏層，最後對 ' + V + ' 個字各打一個分數，softmax 成機率。');
+    set('figCtxLbl', '前 ' + CTX + ' 個字');
+    set('figCtxVal', 'id → ' + CTX);
+    set('figEmb', V + '×' + EMB);
+    set('figFc1', HID + '×' + IN);
+    set('figFc2', V + '×' + HID);
+    set('figVocab', V + ' 個字的機率');
+    set('ngramNote', '表內為示意次數；實際頁面使用匯出的 bigram ' + m.bigram_entries + ' 組真實計數。');
+    set('pplNote', '驗證集困惑度 ' + (+m.mlp_val_ppl).toFixed(1) + ' 高於訓練集 ' +
+      (+m.mlp_train_ppl).toFixed(1) + '，說明模型對沒背過的組合仍不擅長預測。');
+  })();
+
   /* ---------- int8 反量化 ---------- */
   function deq(o) {
     var bin = atob(o.data), n = bin.length;
@@ -61,7 +84,7 @@
   var p1 = new Float32Array(V);
   for (var v1 = 0; v1 < V; v1++) p1[v1] = (uni[v1] + NG_K) / (uniTot + NG_K * V);
 
-  var BIG = {}, TRI = {};
+  var BIG = {};
   function prep(table, dst) {
     for (var key in table) {
       var arr = table[key], tot = 0, i;
@@ -72,17 +95,14 @@
     }
   }
   prep(DATA.ngram.bigram, BIG);
-  prep(DATA.ngram.trigram, TRI);
 
   var ngp = new Float32Array(V);
   function ngForward(hist) {
-    var L = hist.length, a = hist[L - 1], b = hist[L - 2];
-    var e3 = TRI[b + ',' + a], e2 = BIG[String(a)], i, v;
-    for (v = 0; v < V; v++) ngp[v] = 0.1 * p1[v];
-    if (e3) { for (i = 0; i < e3.ids.length; i++) ngp[e3.ids[i][0]] += 0.7 * e3.p[i]; }
-    else { for (v = 0; v < V; v++) ngp[v] += 0.7 * p1[v]; }
-    if (e2) { for (i = 0; i < e2.ids.length; i++) ngp[e2.ids[i][0]] += 0.2 * e2.p[i]; }
-    else { for (v = 0; v < V; v++) ngp[v] += 0.2 * p1[v]; }
+    var L = hist.length, a = hist[L - 1];
+    var e2 = BIG[String(a)], i, v;
+    for (v = 0; v < V; v++) ngp[v] = 0.2 * p1[v];
+    if (e2) { for (i = 0; i < e2.ids.length; i++) ngp[e2.ids[i][0]] += 0.8 * e2.p[i]; }
+    else { for (v = 0; v < V; v++) ngp[v] += 0.8 * p1[v]; }
     return ngp;
   }
 

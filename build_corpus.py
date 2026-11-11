@@ -14,7 +14,7 @@ import math
 import os
 import random
 
-TARGET = 10000
+TARGET = 200000
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(HERE, "corpus_base.txt")
 CORPUS = os.path.join(HERE, "corpus.txt")
@@ -475,6 +475,96 @@ def build_scene_sentences(rng: random.Random, per_action: int) -> list[str]:
     return out
 
 
+# 英文模板合成句（真實英文句不足時，用固定語法模板補足字母與詞組規律）
+EN_SUBJ = ["i", "you", "he", "she", "we", "they", "tom", "mary", "the cat",
+           "the dog", "my friend", "the teacher", "the student"]
+EN_VERB = ["like", "want", "go", "see", "eat", "read", "play", "buy", "work",
+           "study", "drink", "walk", "watch", "know", "think", "love", "need",
+           "make", "live", "wait"]
+EN_OBJ = ["book", "apple", "coffee", "movie", "song", "dog", "car", "house",
+          "city", "game", "tea", "bread", "rice", "letter", "picture", "friend"]
+EN_ADV = ["today", "now", "tomorrow", "yesterday", "here", "there", "often",
+          "usually", "sometimes", "in the morning", "at night", "after work"]
+EN_ADJ = ["good", "nice", "happy", "busy", "hungry", "tired", "small", "big",
+          "old", "new"]
+
+MIX_EN = ["coffee", "book", "movie", "music", "dog", "cat", "car", "park",
+          "tea", "game", "phone", "hotel", "bus", "song"]
+MIX_ZH = ["喝茶", "看書", "聽歌", "散步", "打球", "買菜", "做飯", "寫字"]
+
+
+def build_en_synth(rng: random.Random, target: int) -> list[str]:
+    """英文模板句：主詞＋動詞＋賓詞＋時間／形容詞變化。"""
+    out: set[str] = set()
+    tries = 0
+    while len(out) < target and tries < target * 40:
+        tries += 1
+        s = rng.choice(EN_SUBJ)
+        v = rng.choice(EN_VERB)
+        o = rng.choice(EN_OBJ)
+        a = rng.choice(EN_ADV)
+        adj = rng.choice(EN_ADJ)
+        k = rng.randint(0, 6)
+        if k == 0:
+            sent = f"{s} {v} {o}."
+        elif k == 1:
+            sent = f"{s} {v} {o} {a}."
+        elif k == 2:
+            sent = f"{a}, {s} {v} {o}."
+        elif k == 3:
+            sent = f"{s} is {adj}."
+        elif k == 4:
+            sent = f"do you {v} {o}?"
+        elif k == 5:
+            s2, v2, o2 = rng.choice(EN_SUBJ), rng.choice(EN_VERB), rng.choice(EN_OBJ)
+            sent = f"{s} {v} {o}, and {s2} {v2} {o2}."
+        else:
+            sent = f"i {v} {o} {a}."
+        out.add(sent)
+    return list(out)
+
+
+def build_mixed(rng: random.Random, target: int) -> list[str]:
+    """中英夾雜：中文框子放英文詞，或英文框子放中文動作。"""
+    out: set[str] = set()
+    tries = 0
+    while len(out) < target and tries < target * 40:
+        tries += 1
+        m = rng.choice(MIX_EN)
+        z = rng.choice(MIX_ZH)
+        k = rng.randint(0, 9)
+        if k == 0:
+            sent = f"他在辦公室喝{m}。"
+        elif k == 1:
+            sent = f"我最近喜歡聽{m}。"
+        elif k == 2:
+            sent = f"這本{m}很好看。"
+        elif k == 3:
+            sent = f"我們週末去{m}玩。"
+        elif k == 4:
+            sent = f"你知道{m}在哪裡嗎？"
+        elif k == 5:
+            sent = f"我買了一個{m}。"
+        elif k == 6:
+            sent = f"她養了一隻{m}。"
+        elif k == 7:
+            sent = f"i like {z} very much."
+        elif k == 8:
+            sent = f"we often {z} in the park."
+        else:
+            sent = f"{m} is my favorite."
+        out.add(sent)
+    return list(out)
+
+
+def load_clean(name: str) -> list[str]:
+    p = os.path.join(HERE, "data-src", name)
+    if not os.path.exists(p):
+        return []
+    with open(p, encoding="utf-8") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
 def main() -> None:
     with open(BASE, encoding="utf-8") as f:
         base = [line.strip() for line in f if line.strip()]
@@ -488,11 +578,24 @@ def main() -> None:
         dialog_lines.append(q + a)
     dialog_lines += build_dialog(rng, 1200)
 
-    fixed = len(hand) + len(dialog_lines)
+    zh_real = load_clean("zh_clean.txt")
+    en_real = load_clean("en_clean.txt")
+    rng.shuffle(zh_real)
+    rng.shuffle(en_real)
+    ZH_CAP = 120000
+    EN_SYN = 30000
+    MIX = 8000
+    zh_real = zh_real[:ZH_CAP]
+    en_synth = build_en_synth(rng, EN_SYN)
+    mixed = build_mixed(rng, MIX)
+
+    fixed = (len(hand) + len(dialog_lines) + len(zh_real) + len(en_real)
+             + len(en_synth) + len(mixed))
     need = max(TARGET - fixed, 0)
     per_action = math.ceil(need / len(ACTIONS)) + 10
+    scene = build_scene_sentences(rng, per_action)
 
-    pool = hand + dialog_lines + build_scene_sentences(rng, per_action)
+    pool = hand + dialog_lines + zh_real + en_real + en_synth + mixed + scene
 
     seen: set[str] = set()
     sentences: list[str] = []
@@ -508,7 +611,10 @@ def main() -> None:
 
     with open(CORPUS, "w", encoding="utf-8") as f:
         f.write("\n".join(sentences) + "\n")
-    print(f"完成：{len(sentences)} 句（手寫 {fixed} 句，其中對話 {len(DIALOG)} 組；組合 {len(sentences) - fixed} 句）")
+    print(f"完成：{len(sentences)} 句")
+    print(f"  手寫短句 {len(hand)}；對話 {len(dialog_lines)} 組")
+    print(f"  真實中文 {len(zh_real)}；真實英文 {len(en_real)}")
+    print(f"  英文模板 {len(en_synth)}；中英夾雜 {len(mixed)}；中文模板 {len(scene)}")
 
 
 if __name__ == "__main__":

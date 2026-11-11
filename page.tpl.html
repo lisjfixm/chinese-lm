@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>活字盤 · 中文字級語言模型</title>
+<title>活字盤 · 中英字級語言模型</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314150F'/%3E%3Crect x='6' y='6' width='20' height='20' fill='none' stroke='%23C0452E' stroke-width='2'/%3E%3Cline x1='11' y1='16' x2='21' y2='16' stroke='%23E7E1D2' stroke-width='2'/%3E%3Cline x1='16' y1='11' x2='16' y2='21' stroke='%23E7E1D2' stroke-width='2'/%3E%3C/svg%3E">
 <style>
 :root{
@@ -375,14 +375,14 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <header class="top">
   <div class="wrap">
     <div class="brand">活字盤 <em>/</em> 下一個字</div>
-    <div class="topnote">char-level language model &nbsp;/&nbsp; 10000 句 &nbsp;/&nbsp; 894 字 &nbsp;/&nbsp; 250494 參數</div>
+    <div class="topnote" id="topNote">char-level language model</div>
   </div>
 </header>
 
 <section class="hero">
   <div class="wrap">
     <h1>下一個<span class="tail">字</span></h1>
-    <p class="lede">模型只做一件事：看著前面的幾個字，猜下一個字是什麼。它從 10000 句中文句子裡學會這件事，現在在瀏覽器裡以 <b>int8 量化權重</b> 即時運行，每個字都是現場算出來的。</p>
+    <p class="lede">模型只做一件事：看著前面的幾個字，猜下一個字是什麼。它從 <span id="ledeCount">—</span> 裡學會這件事，現在在瀏覽器裡以 <b>int8 量化權重</b> 即時運行，每個字都是現場算出來的。</p>
 
     <!-- 首屏：即時生成的字盤帶 -->
     <div class="band" id="band" aria-label="模型即時生成的字盤">
@@ -407,10 +407,10 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     </div>
 
     <div class="stats">
-      <div><div class="lbl">語料</div><div class="val">10000 句</div></div>
-      <div><div class="lbl">詞表</div><div class="val">894 字</div></div>
-      <div><div class="lbl">MLP 驗證困惑度</div><div class="val">16.4</div></div>
-      <div><div class="lbl">上下文長度</div><div class="val">8 字</div></div>
+      <div><div class="lbl">語料</div><div class="val" id="statSent">—</div></div>
+      <div><div class="lbl">詞表</div><div class="val" id="statVocab">—</div></div>
+      <div><div class="lbl">MLP 驗證困惑度</div><div class="val" id="statPpl">—</div></div>
+      <div><div class="lbl">上下文長度</div><div class="val" id="statCtx">—</div></div>
     </div>
   </div>
 </section>
@@ -423,7 +423,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     <div class="console">
       <div class="bar">
         <div class="promptrow">
-          <input type="text" id="prompt" value="今天" maxlength="12" placeholder="輸入一兩個字…" aria-label="提示詞">
+          <input type="text" id="prompt" value="今天" maxlength="12" placeholder="輸入一兩個字或英文…" aria-label="提示詞">
           <button class="btn" id="gen">生成</button>
         </div>
       </div>
@@ -435,6 +435,8 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">朋友</button>
           <button class="chip">夜晚</button>
           <button class="chip">早安</button>
+          <button class="chip">the</button>
+          <button class="chip">i love</button>
         </div>
         <div class="controls">
           <div class="seg" id="modelSeg">
@@ -505,7 +507,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
         <div class="vmeta" id="vMlpMeta">—</div>
       </div>
       <div class="vcell">
-        <h3>n-gram 統計模型 <i>bigram + trigram · add-k 平滑</i></h3>
+        <h3>n-gram 統計模型 <i>bigram + unigram · add-k 平滑</i></h3>
         <div class="vout" id="vNg">—</div>
         <div class="vmeta" id="vNgMeta">—</div>
       </div>
@@ -522,22 +524,22 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     <div class="inside">
       <div class="icell">
         <h3>MLP：八個字換一個分佈</h3>
-        <p>每個字先查成一條 32 維的向量，八個字接起來變成 256 維，穿過一層 tanh 隱藏層，最後對 894 個字各打一個分數，softmax 成機率。</p>
+        <p id="mlpDesc">每個字先查成一條向量，接起來攤平，穿過一層 tanh 隱藏層，最後對詞表每個字各打一個分數，softmax 成機率。</p>
         <div class="fig">
-          <div class="mod"><span>前 8 個字</span><b>id → 8</b></div>
+          <div class="mod"><span id="figCtxLbl">前 8 個字</span><b id="figCtxVal">id → 8</b></div>
           <div class="arrow">↓ 查表</div>
-          <div class="mod"><span>字向量 Embedding</span><b>894×32</b></div>
+          <div class="mod"><span>字向量 Embedding</span><b id="figEmb">—</b></div>
           <div class="arrow">↓ 攤平</div>
-          <div class="mod"><span>隱藏層 Linear + tanh</span><b>192×256</b></div>
+          <div class="mod"><span>隱藏層 Linear + tanh</span><b id="figFc1">—</b></div>
           <div class="arrow">↓</div>
-          <div class="mod"><span>輸出層 Linear</span><b>894×192</b></div>
+          <div class="mod"><span>輸出層 Linear</span><b id="figFc2">—</b></div>
           <div class="arrow">↓ softmax</div>
-          <div class="mod"><span>894 個字的機率</span><b>和 = 1</b></div>
+          <div class="mod"><span id="figVocab">詞表機率</span><b>和 = 1</b></div>
         </div>
       </div>
       <div class="icell">
         <h3>n-gram：數前文出現過幾次</h3>
-        <p>不看語義，只查表。前兩個字是什麼，就看語料裡這兩個字後面接過哪些字、各接過幾次。沒查到的組合退回短一點的前文。</p>
+        <p>不看語義，只查表。前一個字是什麼，就看語料裡這個字後面接過哪些字、各接過幾次。沒查到的組合退回更短的一元統計。</p>
         <div class="lookup">
           <div class="row"><span>前文</span><span>下一個字</span><span>次數</span></div>
           <div class="row"><span>今天</span><span class="hit">天</span><span>12</span></div>
@@ -545,7 +547,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <div class="row"><span>今天</span><span>學</span><span>2</span></div>
           <div class="row"><span>今天</span><span>早</span><span>1</span></div>
         </div>
-        <p style="margin:14px 0 0;font-size:12.5px;color:#8D887A">表內為示意次數；實際頁面使用匯出的 bigram 892 組、trigram 5083 組真實計數。</p>
+        <p style="margin:14px 0 0;font-size:12.5px;color:#8D887A" id="ngramNote">表內為示意次數；實際頁面使用匯出的 bigram 真實計數。</p>
       </div>
     </div>
   </div>
@@ -585,7 +587,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
       <div class="dcell">
         <div class="cap"><h3>困惑度對照</h3><i>越低越好</i></div>
         <div class="chart" id="chartPpl"></div>
-        <div class="note">驗證集困惑度 16.4 仍高於訓練集 4.0，說明模型對沒背過的組合仍不擅長預測。</div>
+        <div class="note" id="pplNote">驗證集困惑度高於訓練集，說明模型對沒背過的組合仍不擅長預測。</div>
       </div>
     </div>
   </div>
@@ -601,7 +603,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
       </div>
       <div class="limit">
         <h4>語料是拼出來的</h4>
-        <p>10000 句裡有 8449 句由「動作 × 地點 × 人物 × 模板」組合而成，句式仍偏整齊。模型學會的是這些句型的骨架，不是自然語言的全部細節。</div>
+        <p>語料含一部分從網路收集的真實中英句子，也有不少模板合成句；模型學會的是常見字詞搭配與句型骨架，不是自然語言的全部細節。</div>
       </div>
       <div class="limit">
         <h4>沒有詞義</h4>

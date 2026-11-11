@@ -33,18 +33,23 @@ def quantize(t: torch.Tensor) -> dict:
     return {"scale": scale, "data": base64.b64encode(q.tobytes()).decode("ascii")}
 
 
-def export_ngram(lm: NgramLM) -> dict:
-    """把二gram、三gram 的計數表轉成 {ctx: [[next, count], ...]}。"""
-    def to_json(table):
+def export_ngram(lm: NgramLM, bigram_topk: int = 10) -> dict:
+    """把 n-gram 計數表轉成 {ctx: [[next, count], ...]}。
+
+    網頁單檔體積有限：只帶 bigram（每個前文保留前 top-k 個後接字），
+    trigram 表留在本機 pkl，不內嵌進 HTML。
+    """
+    def to_json(table, topk):
         out = {}
         for ctx, counts in table.items():
             key = ",".join(str(c) for c in ctx)
-            out[key] = [[int(n), int(c)] for n, c in counts.items() if c > 0]
+            items = sorted(counts.items(), key=lambda kv: -kv[1])[:topk]
+            out[key] = [[int(n), int(c)] for n, c in items if c > 0]
         return out
 
     return {
-        "bigram": to_json(lm.counts2),
-        "trigram": to_json(lm.counts),
+        "bigram": to_json(lm.counts2, bigram_topk),
+        "trigram": {},
         "unigram": {str(k): int(v) for k, v in lm.unigram.items()},
         "total_uni": int(lm.total_uni),
     }
@@ -77,17 +82,20 @@ def main() -> None:
         return {"ctx": ctx_text,
                 "top": [[mlp["itos"][int(i)], round(float(p[int(i)]) * 100, 1)] for i in top]}
 
-    probes = [probe(c) for c in ["我的", "的我", "今天", "天今", "媽媽在", "在媽媽"]]
+    probes = [probe(c) for c in ["我的", "的我", "今天", "天今", "媽媽在", "在媽媽", "i l", "th", "the "]]
 
     # 對話模式的語料問答：頁面先找最接近的一句問法，再讓模型接出答句
     dialogs = []
     with open(os.path.join(HERE, "corpus.txt"), encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if "—" in line:
-                q, a = line.split("—", 1)
-                if q and a:
-                    dialogs.append([q, a])
+            if "—" not in line:
+                continue
+            q, a = line.split("—", 1)
+            q, a = q.strip(), a.strip().strip("—－-").strip()
+            # 只保留真正的問答：問句以問號收尾，答話裡不再夾破折號
+            if len(q) >= 2 and len(a) >= 1 and q[-1] in "？?" and "—" not in a:
+                dialogs.append([q, a])
 
     data = {
         "meta": {

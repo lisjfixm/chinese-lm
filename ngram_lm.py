@@ -86,13 +86,35 @@ class NgramLM:
         p2 = self._level_probs(2, ctx[-1:])
         return 0.7 * p3 + 0.2 * p2 + 0.1 * p1
 
+    def _token_prob(self, order: int, ctx: tuple | None, j: int) -> float:
+        """單一階層下某個目標字的平滑機率（稀疏查表，不建整個詞表陣列）。"""
+        V, k = self.V, self.k
+        if order == 1:
+            return (self.unigram.get(j, 0) + k) / (self.total_uni + k * V)
+        table, total = (self.counts2, self.total2) if order == 2 else (self.counts, self.context_total)
+        counts = table.get(ctx)
+        t = total.get(ctx, 0)
+        if counts is None:
+            return 1.0 / V
+        return (counts.get(j, 0) + k) / (t + k * V)
+
+    def _token_probs(self, ctx: tuple, j: int) -> float:
+        """階層回溯 + 線性插值後，目標字 j 的機率。"""
+        p1 = self._token_prob(1, None, j)
+        if self.n == 2:
+            p2 = self._token_prob(2, ctx[-1:], j)
+            return 0.8 * p2 + 0.2 * p1
+        p3 = self._token_prob(3, ctx, j)
+        p2 = self._token_prob(2, ctx[-1:], j)
+        return 0.7 * p3 + 0.2 * p2 + 0.1 * p1
+
     def sentence_logprob(self, ids: list[int]) -> tuple[float, int]:
         sos_id, eos_id = self.vocab[SOS], self.vocab[EOS]
         seq = [sos_id] * (self.n - 1) + list(ids) + [eos_id]
         logp, n_tok = 0.0, 0
         for i in range(self.n - 1, len(seq)):
             ctx = tuple(seq[i - self.n + 1: i])
-            p = self._probs(ctx)[seq[i]]
+            p = self._token_probs(ctx, seq[i])
             logp += math.log(p)
             n_tok += 1
         return logp, n_tok
@@ -187,15 +209,16 @@ def main() -> None:
     args = ap.parse_args()
 
     sentences = load_sentences(args.corpus)
-    vocab, itos = build_vocab(sentences)
+    vocab, itos = build_vocab(sentences, min_freq=2)
     print(f"語料句子數：{len(sentences)}　詞表大小：{len(vocab)}")
 
     metrics = {}
+    eval_sample = sentences[:5000]  # 困惑度在抽樣上計算，避免大詞表下逐字建整個機率陣列
     for n in (2, 3):
         probe = NgramLM(n=n, k=args.k).fit(sentences, vocab, itos)
-        ppl = probe.perplexity(sentences)
+        ppl = probe.perplexity(eval_sample)
         metrics[f"ngram_{n}gram_ppl"] = round(ppl, 2)
-        print(f"{n}-gram 訓練困惑度：{ppl:.2f}")
+        print(f"{n}-gram 訓練困惑度（5000 句抽樣）：{ppl:.2f}")
 
     lm = NgramLM(n=args.n, k=args.k).fit(sentences, vocab, itos)
 

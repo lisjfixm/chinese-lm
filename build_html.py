@@ -6,7 +6,7 @@ import os
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(HERE, "outputs")
-OUT_PATH = os.path.join(HERE, "活字盤-中文語言模型.html")
+OUT_PATH = os.path.join(HERE, "活字盤-中英語言模型.html")
 
 
 def main() -> None:

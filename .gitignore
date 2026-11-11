@@ -7,3 +7,7 @@ outputs/*.pkl
 outputs/*.png
 outputs/web_model.json
 outputs/generated_samples.txt
+outputs/*.log
+
+# 下載的原始語料與中間清洗檔（體積大，可由 prepare_sources.py 重產）
+data-src/

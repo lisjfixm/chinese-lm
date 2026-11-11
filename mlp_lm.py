@@ -11,6 +11,7 @@
 
 import argparse
 import json
+import math
 import os
 
 import torch
@@ -50,11 +51,15 @@ def build_dataset(sentences: list[str], vocab: dict[str, int], ctx: int):
 
 @torch.no_grad()
 def perplexity(model: nn.Module, X: torch.Tensor, Y: torch.Tensor,
-               loss_fn: nn.Module) -> float:
+               loss_fn: nn.Module, batch: int = 1024) -> float:
     model.eval()
-    logits = model(X)
-    loss = loss_fn(logits, Y)
-    return float(torch.exp(loss))
+    total, n = 0.0, 0
+    for i in range(0, len(X), batch):
+        logits = model(X[i:i + batch])
+        bl = min(i + batch, len(X)) - i
+        total += loss_fn(logits, Y[i:i + batch]).item() * bl
+        n += bl
+    return float(math.exp(total / n))
 
 
 def generate(model: CharMLPLM, prompt: str, vocab: dict[str, int], itos: list[str],
@@ -90,12 +95,16 @@ def generate(model: CharMLPLM, prompt: str, vocab: dict[str, int], itos: list[st
 def main() -> None:
     ap = argparse.ArgumentParser(description="從零實作的小型 MLP 中文語言模型")
     ap.add_argument("--corpus", default=None)
-    ap.add_argument("--epochs", type=int, default=24)
+    ap.add_argument("--epochs", type=int, default=4)
     ap.add_argument("--lr", type=float, default=0.01)
     ap.add_argument("--emb", type=int, default=32)
-    ap.add_argument("--hidden", type=int, default=192)
+    ap.add_argument("--hidden", type=int, default=128)
     ap.add_argument("--ctx", type=int, default=8)
-    ap.add_argument("--batch", type=int, default=128)
+    ap.add_argument("--batch", type=int, default=256)
+    ap.add_argument("--max_train", type=int, default=3_000_000,
+                    help="訓練樣本上限；超過就隨機取樣，避免 CPU 訓練過久")
+    ap.add_argument("--max_val", type=int, default=50_000,
+                    help="驗證樣本上限，困惑度在抽樣上計算")
     ap.add_argument("--temperature", type=float, default=0.7)
     ap.add_argument("--top_k", type=int, default=5)
     ap.add_argument("--seed", type=int, default=42)
@@ -103,7 +112,7 @@ def main() -> None:
 
     torch.manual_seed(args.seed)
     sentences = load_sentences(args.corpus)
-    vocab, itos = build_vocab(sentences)
+    vocab, itos = build_vocab(sentences, min_freq=2)
     V = len(vocab)
     print(f"語料句子數：{len(sentences)}　詞表大小：{V}")
 
@@ -112,6 +121,12 @@ def main() -> None:
     train_sents, val_sents = sentences[:split], sentences[split:]
     Xtr, Ytr = build_dataset(train_sents, vocab, args.ctx)
     Xva, Yva = build_dataset(val_sents, vocab, args.ctx)
+    if args.max_train and len(Xtr) > args.max_train:
+        idx = torch.randperm(len(Xtr))[:args.max_train]
+        Xtr, Ytr = Xtr[idx], Ytr[idx]
+    if args.max_val and len(Xva) > args.max_val:
+        idx = torch.randperm(len(Xva))[:args.max_val]
+        Xva, Yva = Xva[idx], Yva[idx]
     print(f"訓練樣本：{len(Xtr)}　驗證樣本：{len(Xva)}")
 
     model = CharMLPLM(V, emb_dim=args.emb, ctx=args.ctx, hidden=args.hidden)
@@ -170,7 +185,7 @@ def main() -> None:
     except Exception as e:
         print(f"（跳過損失曲線圖：{e}）")
 
-    prompts = ["今天", "我", "天氣", "朋友", "這座", "夜晚"]
+    prompts = ["今天", "我", "天氣", "朋友", "夜晚", "i ", "the ", "我喜歡"]
     print("\n生成範例：")
     for p in prompts:
         out = generate(model, p, vocab, itos, temperature=args.temperature,

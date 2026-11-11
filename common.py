@@ -32,13 +32,18 @@ def tokenize(sentence: str) -> list[str]:
     return list(sentence)
 
 
-def build_vocab(sentences: list[str]) -> tuple[dict[str, int], list[str]]:
-    """由語料建立詞表：字 -> 編號、編號 -> 字。特殊 token 排在最前面。"""
-    chars = set()
+def build_vocab(sentences: list[str], min_freq: int = 1) -> tuple[dict[str, int], list[str]]:
+    """由語料建立詞表：字 -> 編號、編號 -> 字。特殊 token 排在最前面。
+
+    min_freq 以下的罕見字不收進詞表，編碼時對應到 <UNK>，避免詞表被冷僻字撐大。
+    """
+    from collections import Counter
+    freq: Counter[str] = Counter()
     for s in sentences:
-        chars.update(tokenize(s))
+        freq.update(tokenize(s))
+    chars = sorted(ch for ch, n in freq.items() if n >= min_freq)
     vocab = {tok: i for i, tok in enumerate(SPECIAL_TOKENS)}
-    for ch in sorted(chars):
+    for ch in chars:
         if ch not in vocab:
             vocab[ch] = len(vocab)
     itos = [tok for tok, _ in sorted(vocab.items(), key=lambda kv: kv[1])]
