@@ -19,11 +19,13 @@ chinese-lm/
 ├── mlp_lm.py           # MLP 神經 LM：嵌入層、隱藏層、訓練迴圈、生成
 ├── reload_demo.py      # 載入已儲存模型並生成文字的示範
 ├── export_model.py     # 匯出瀏覽器用資料（int8 量化權重 + n-gram 計數表）
+├── dump_model_txt.py   # 把訓練好的數據匯出成純文字 模型.txt
 ├── build_corpus.py     # 語料建構腳本：動作三元組 + 模板 + 對話擴充
 ├── page.tpl.html       # 網頁模板（結構與樣式）
 ├── page.js             # 網頁內推論程式（MLP 前向、n-gram 查表、取樣）
 ├── build_html.py       # 把模板 + 模型資料 + page.js 合成單一 HTML
 ├── 活字盤-中文語言模型.html  # 最終單檔示範頁（可離線開啟）
+├── 模型.txt             # 訓練好的數據純文字匯出：詞表、n-gram 統計表、MLP 權重
 └── outputs/
     ├── ngram_model.pkl # 訓練好的 n-gram 模型（pickle）
     ├── mlp_model.pt    # 訓練好的 MLP 權重（torch）
