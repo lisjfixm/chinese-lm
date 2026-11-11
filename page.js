@@ -332,6 +332,70 @@
     genOut.innerHTML = html;
   }
 
+  /* ---------- 生成軌跡座標圖 ---------- */
+  var trajChart = null;
+  function trajPoints(chars) {
+    var pts = [];
+    chars.forEach(function (ch) {
+      var c = COORD[ch];
+      if (c) pts.push([c[0], c[1], ch]);
+    });
+    return pts;
+  }
+  function renderTraj(chars) {
+    var box = el('trajMap');
+    if (!box) return;
+    var pts = trajPoints(chars);
+    var cnt = el('trajCount');
+    if (cnt) cnt.textContent = pts.length + ' 字';
+    if (typeof echarts === 'undefined') {
+      box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">軌跡圖需要 ECharts 連線載入。</p>';
+      return;
+    }
+    if (!trajChart) trajChart = echarts.init(box);
+    var lineData = pts.map(function (p) { return [p[0], p[1]]; });
+    trajChart.setOption({
+      backgroundColor: 'transparent',
+      grid: { left: 18, right: 18, top: 18, bottom: 28 },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
+        textStyle: { color: '#E7E1D2', fontSize: 11 },
+        formatter: function (p) {
+          var d = p.data;
+          return esc(d[2]) + '　(' + d[0].toFixed(2) + ', ' + d[1].toFixed(2) + ')';
+        }
+      },
+      xAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
+        axisTick: { show: false },
+        axisLabel: { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' },
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      yAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' },
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      series: [
+        {
+          type: 'line', data: lineData, showSymbol: false, zlevel: 1,
+          lineStyle: { color: '#C0452E', width: 1.5 }
+        },
+        {
+          type: 'scatter', data: pts, symbolSize: 7, zlevel: 2,
+          itemStyle: { color: '#E7E1D2' },
+          label: {
+            show: true, position: 'top', color: '#C9C2B2', fontSize: 10,
+            formatter: function (p) { return p.data[2]; }
+          }
+        }
+      ]
+    });
+  }
+
   function startJob() {
     if (job) job.stop = true;
     var model = curModel;
@@ -346,6 +410,7 @@
     genBtn.textContent = '停止';
     genBtn.classList.add('pause');
     renderOut(chars, true);
+    renderTraj(chars);
     ctxline.textContent = '上下文：' + (chars.slice(-CTX).join('') || '—');
     pplOut.textContent = '計算中…';
     probList.innerHTML = '';
@@ -358,6 +423,7 @@
       genBtn.classList.remove('pause');
       if (!my.done) {
         renderOut(chars, false);
+        renderTraj(chars);
         my.done = true;
       }
       if (my.n > 0) {
@@ -380,6 +446,7 @@
       pplOut.textContent = '本次生成困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
       ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
       renderOut(chars, true);
+      renderTraj(chars);
       setTimeout(tick, 62);
     }
     setTimeout(tick, 90);
@@ -729,7 +796,7 @@
     }
 
     drawEmbMap();
-    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); if (embChart) embChart.resize(); });
+    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); if (embChart) embChart.resize(); if (trajChart) trajChart.resize(); });
   }
 
   if (document.readyState === 'complete') { drawCharts(); }
