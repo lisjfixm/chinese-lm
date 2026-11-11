@@ -325,7 +325,7 @@
     var html = '', i, n = chars.length;
     for (i = 0; i < n; i++) {
       var cur = (i === n - 1 && streaming);
-      html += '<span class="tk' + (cur ? ' cur' : '') + '"><i>' + (i + 1) + '</i><b>' +
+      html += '<span class="tk' + (cur ? ' cur' : '') + '"><i>' + coordText(chars[i]) + '</i><b>' +
         esc(chars[i]) + '</b></span>';
     }
     if (streaming) html += '<span class="caret"></span>';
