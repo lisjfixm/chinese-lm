@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>活字盤 · 中文字級語言模型</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2314150F'/%3E%3Crect x='6' y='6' width='20' height='20' fill='none' stroke='%23C0452E' stroke-width='2'/%3E%3Cline x1='11' y1='16' x2='21' y2='16' stroke='%23E7E1D2' stroke-width='2'/%3E%3Cline x1='16' y1='11' x2='16' y2='21' stroke='%23E7E1D2' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+:root{
+  --ink:#14150F;
+  --ink2:#1C1D15;
+  --paper:#E7E1D2;
+  --mute:#8D887A;
+  --cin:#C0452E;
+  --cel:#84A196;
+  --line:rgba(231,225,210,.14);
+  --line2:rgba(231,225,210,.07);
+  --serif:"Songti SC","Noto Serif CJK SC","Source Han Serif SC","STSong","SimSun",serif;
+  --sans:"PingFang SC","Noto Sans CJK SC","Source Han Sans SC","Microsoft YaHei",sans-serif;
+  --mono:"SF Mono","JetBrains Mono","Roboto Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background-image:radial-gradient(rgba(231,225,210,.055) 1px,transparent 1px);
+  background-size:28px 28px;
+  opacity:.5;
+  z-index:0;
+}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 20px}
+
+/* ---------- 頂部 ---------- */
+.top{
+  border-bottom:1px solid var(--line);
+  padding:14px 0;
+}
+.top .wrap{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{font-family:var(--serif);font-size:20px;letter-spacing:.14em}
+.brand em{font-style:normal;color:var(--cin)}
+.topnote{font-family:var(--mono);font-size:11.5px;color:var(--mute);letter-spacing:.06em}
+
+/* ---------- 首屏 ---------- */
+.hero{padding:52px 0 44px;border-bottom:1px solid var(--line)}
+h1{
+  font-family:var(--serif);
+  font-size:clamp(52px,15vw,132px);
+  line-height:.94;
+  letter-spacing:.06em;
+  font-weight:600;
+  margin-bottom:8px;
+}
+h1 .tail{color:var(--cin)}
+.lede{
+  max-width:34em;
+  font-size:15px;
+  color:#C9C2B2;
+  margin-top:20px;
+}
+.lede b{font-weight:600;color:var(--paper)}
+
+/* 字盤帶 */
+.band{
+  margin-top:38px;
+  border-top:1px solid var(--line);
+  border-left:1px solid var(--line);
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  border-right:1px solid var(--line);
+}
+.cell{
+  aspect-ratio:1/1;
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  font-family:var(--serif);
+  font-size:clamp(22px,6vw,34px);
+  color:var(--paper);
+}
+.cell::after{
+  content:"";
+  position:absolute;
+  left:0;bottom:0;
+  width:100%;height:2px;
+  background:var(--cin);
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .35s ease;
+}
+.cell.filled::after{transform:scaleX(1)}
+.cell.empty{color:rgba(231,225,210,.16)}
+@keyframes stamin{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.cell.pop{animation:stamin .3s ease-out both}
+
+.trace{
+  display:flex;align-items:baseline;gap:10px;
+  margin-top:14px;
+  min-height:26px;
+  font-size:13px;
+  color:var(--mute);
+  flex-wrap:wrap;
+}
+.trace .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#6F695E}
+.trace .alts{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--serif);color:#C9C2B2}
+.trace .alts span{font-size:15px}
+.trace .alts i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);margin-left:3px}
+
+.stats{
+  margin-top:34px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:1px;
+  background:var(--line);
+  border:1px solid var(--line);
+}
+.stats div{background:var(--ink);padding:14px 16px}
+.stats .lbl{font-size:11.5px;color:var(--mute);letter-spacing:.08em}
+.stats .val{font-family:var(--mono);font-size:17px;margin-top:2px;letter-spacing:.02em}
+
+/* ---------- 區塊骨架 ---------- */
+section{padding:56px 0;border-bottom:1px solid var(--line);scroll-margin-top:64px}
+.shead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.shead h2{font-family:var(--serif);font-size:clamp(24px,5vw,32px);font-weight:600;letter-spacing:.05em}
+.shead .en{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em}
+.sub{color:#B9B2A2;max-width:42em;font-size:14.5px}
+
+/* ---------- 操作台 ---------- */
+.console{margin-top:28px;border:1px solid var(--line)}
+.bar{
+  border-bottom:1px solid var(--line);
+  padding:14px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.promptrow{display:flex;gap:8px;flex-wrap:wrap}
+input[type=text]{
+  flex:1 1 180px;
+  min-width:0;
+  min-height:44px;
+  background:transparent;
+  border:1px solid var(--line);
+  color:var(--paper);
+  font-family:var(--serif);
+  font-size:20px;
+  padding:6px 12px;
+  outline:none;
+}
+input[type=text]:focus{border-color:var(--cin)}
+input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--sans)}
+.btn{
+  min-height:44px;
+  padding:0 20px;
+  border:1px solid var(--cin);
+  background:var(--cin);
+  color:#1A120F;
+  font-family:var(--sans);
+  font-size:14px;
+  letter-spacing:.08em;
+  cursor:pointer;
+}
+.btn:hover{background:#CE5238}
+.btn.pause{background:transparent;color:var(--cin)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{
+  min-height:44px;
+  padding:4px 12px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:#C9C2B2;
+  font-family:var(--serif);
+  font-size:14px;
+  cursor:pointer;
+}
+.chip:hover{border-color:var(--paper);color:var(--paper)}
+.chip:hover .mk{width:100%}
+
+.controls{display:flex;flex-wrap:wrap;gap:22px;align-items:center}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{
+  min-height:44px;
+  padding:0 16px;
+  background:transparent;
+  border:0;
+  color:var(--mute);
+  font-family:var(--sans);
+  font-size:13.5px;
+  cursor:pointer;
+  letter-spacing:.04em;
+}
+.seg button[aria-pressed=true]{background:rgba(192,69,46,.16);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cin)}
+.slider{display:flex;flex-direction:column;gap:2px;min-width:132px;flex:1 1 132px}
+.slider label{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;display:flex;justify-content:space-between}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  width:100%;height:34px;background:transparent;cursor:pointer;
+}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;margin-top:-7px;background:var(--cin);border:0;
+}
+input[type=range]::-moz-range-track{height:1px;background:var(--line)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin);border:0;border-radius:0}
+
+.readout{border-bottom:1px solid var(--line);padding:20px 16px;min-height:126px}
+.ctxline{font-family:var(--mono);font-size:11px;color:#6F695E;letter-spacing:.08em;margin-bottom:10px}
+.gen{
+  font-family:var(--serif);
+  font-size:clamp(22px,5.4vw,30px);
+  line-height:1.55;
+  letter-spacing:.03em;
+  min-height:1.55em;
+  word-break:break-all;
+}
+.gen .cur{color:var(--cin)}
+.gen .ghost{color:#4B4740}
+.caret{
+  display:inline-block;width:1px;height:1em;background:var(--cin);
+  vertical-align:-.08em;margin-left:2px;
+  animation:blink 1s steps(1) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+.probs{padding:18px 16px 22px}
+#probList{display:grid}
+.probs .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
+.probs .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
+.probs .head b{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--paper)}
+.prow{display:grid;grid-template-columns:34px 1fr 46px;align-items:center;gap:12px;padding:3px 0}
+.prow .ch{font-family:var(--serif);font-size:17px;text-align:center}
+.prow .track{height:10px;background:rgba(231,225,210,.06);position:relative}
+.prow .fill{position:absolute;left:0;top:0;height:100%;background:var(--cin);transition:width .22s ease}
+.prow:first-child .fill{background:var(--cin)}
+.prow .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute);text-align:right}
+
+/* ---------- 對照 ---------- */
+.versus{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.vcell{background:var(--ink);padding:22px 18px}
+.vcell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline}
+.vcell h3 i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);letter-spacing:.06em}
+.vout{
+  font-family:var(--serif);font-size:19px;line-height:1.7;margin-top:14px;
+  min-height:5.1em;color:#D9D2C2;word-break:break-all;
+}
+.vmeta{font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:12px;letter-spacing:.04em}
+.vbtn{
+  margin-top:26px;min-height:44px;padding:0 22px;
+  border:1px solid var(--cel);background:transparent;color:var(--cel);
+  font-family:var(--sans);font-size:14px;letter-spacing:.08em;cursor:pointer;
+}
+.vbtn:hover{background:rgba(132,161,150,.12)}
+
+/* ---------- 構造 ---------- */
+.inside{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.icell{background:var(--ink);padding:22px 18px}
+.icell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:4px}
+.icell p{font-size:13.5px;color:#B0A99A;margin-bottom:16px}
+.fig{display:flex;flex-direction:column;gap:0;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.mod{
+  border:1px solid var(--line);
+  padding:9px 12px;
+  display:flex;justify-content:space-between;gap:10px;
+  color:#C9C2B2;
+}
+.mod span{font-family:var(--sans);font-size:13px}
+.mod b{font-weight:400;color:var(--mute)}
+.arrow{align-self:center;color:#5E5A50;padding:3px 0;font-size:11px}
+.lookup{
+  border:1px solid var(--line);
+}
+.lookup .row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line2)}
+.lookup .row:last-child{border-bottom:0}
+.lookup .row span{padding:8px 10px;font-family:var(--serif);font-size:14px;border-right:1px solid var(--line2);text-align:center}
+.lookup .row span:last-child{border-right:0}
+.lookup .row span.hit{color:var(--cin)}
+
+/* ---------- 數據 ---------- */
+.data{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.dcell{background:var(--ink);padding:20px 18px}
+.dcell .cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+.dcell .cap h3{font-family:var(--serif);font-size:15px;font-weight:600}
+.dcell .cap i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute)}
+.chart{width:100%;height:190px}
+.note{font-size:12.5px;color:#8D887A;line-height:1.65;margin-top:14px;border-left:1px solid var(--line);padding-left:12px}
+
+/* ---------- 界限 ---------- */
+.limits{margin-top:26px;border-top:1px solid var(--line)}
+.limit{
+  display:grid;gap:2px 20px;
+  padding:16px 0;
+  border-bottom:1px solid var(--line2);
+  font-size:14px;
+}
+.limit h4{font-family:var(--sans);font-weight:600;font-size:14px;color:var(--paper)}
+.limit p{color:#A9A292;font-size:13.5px}
+
+footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--mono);letter-spacing:.04em;line-height:2}
+
+/* ---------- 桌面 ---------- */
+@media (min-width:768px){
+  body{font-size:15.5px}
+  .wrap{padding:0 40px}
+  .hero{padding:72px 0 56px}
+  .band{grid-template-columns:repeat(14,1fr)}
+  .stats{grid-template-columns:repeat(4,1fr)}
+  .bar{flex-direction:row;align-items:center;padding:16px 20px}
+  .bar .promptrow{flex:1 1 auto}
+  .controls{flex-wrap:nowrap}
+  #probList{grid-template-columns:1fr 1fr;column-gap:32px}
+  .versus{grid-template-columns:1fr 1fr}
+  .inside{grid-template-columns:1fr 1fr}
+  .data{grid-template-columns:1fr 1fr}
+  .limit{grid-template-columns:180px 1fr;align-items:baseline}
+  .limit p{grid-column:2}
+  section{padding:74px 0}
+}
+
+/* ---------- 位置 / 對話 ---------- */
+.cell .pos{position:absolute;top:4px;left:0;right:0;text-align:center;
+  font-family:var(--mono);font-size:9px;font-style:normal;color:#5E5A50;letter-spacing:.06em}
+.cell.empty .gl{color:rgba(231,225,210,.16)}
+.tk{display:inline-flex;flex-direction:column;align-items:center;vertical-align:top;margin-right:2px}
+.tk i{font-family:var(--mono);font-style:normal;font-size:9.5px;color:#6F695E;line-height:1.2}
+.tk b{font-weight:400;line-height:1.3}
+.tk.cur b{color:var(--cin)}
+
+.pos{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
+.poscell{background:var(--ink);padding:22px 18px}
+.poscell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:6px}
+.poscell p{font-size:13.5px;color:#B0A99A}
+.ptable{margin-top:16px;border:1px solid var(--line);overflow:hidden}
+.ptable .hrow{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:.06em}
+.ptable .row{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line2)}
+.ptable .hrow span,.ptable .row span{padding:7px 8px;text-align:center;border-right:1px solid var(--line2);min-width:0}
+.ptable .hrow span:last-child,.ptable .row span:last-child{border-right:0}
+.ptable .row span:first-child{font-family:var(--serif);font-size:15px;color:var(--paper)}
+.ptable .row b{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--cel)}
+.ptable .row em{font-family:var(--mono);font-style:normal;font-size:10.5px;color:var(--mute);margin-left:3px}
+
+.chat{margin-top:28px;border:1px solid var(--line)}
+.chatlog{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px;max-height:340px;overflow:auto}
+.msg{
+  max-width:88%;padding:9px 12px;border:1px solid var(--line);
+  font-family:var(--serif);font-size:16px;line-height:1.6;word-break:break-all;
+}
+.msg.user{align-self:flex-end;border-color:rgba(192,69,46,.55);color:var(--paper)}
+.msg.bot{align-self:flex-start;color:#D9D2C2}
+.msg.bot.wait{color:#6F695E}
+.msg small{display:block;font-family:var(--mono);font-size:10px;color:#6F695E;margin-top:4px}
+.chatbar{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+@media (prefers-reduced-motion:reduce){
+  .cell.pop{animation:none}
+  .caret{animation:none}
+  .prow .fill{transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">活字盤 <em>/</em> 下一個字</div>
+    <div class="topnote">char-level language model &nbsp;/&nbsp; 10000 句 &nbsp;/&nbsp; 894 字 &nbsp;/&nbsp; 250494 參數</div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>下一個<span class="tail">字</span></h1>
+    <p class="lede">模型只做一件事：看著前面的幾個字，猜下一個字是什麼。它從 10000 句中文句子裡學會這件事，現在在瀏覽器裡以 <b>int8 量化權重</b> 即時運行，每個字都是現場算出來的。</p>
+
+    <!-- 首屏：即時生成的字盤帶 -->
+    <div class="band" id="band" aria-label="模型即時生成的字盤">
+      <div class="cell empty"><i class="pos">1</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">2</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">3</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">4</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">5</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">6</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">7</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">8</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">9</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">10</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">11</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">12</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">13</i><span class="gl">·</span></div>
+      <div class="cell empty"><i class="pos">14</i><span class="gl">·</span></div>
+    </div>
+    <div class="trace" id="trace">
+      <span class="lbl">NEXT</span>
+      <span class="alts" id="traceAlts">正在載入權重…</span>
+    </div>
+
+    <div class="stats">
+      <div><div class="lbl">語料</div><div class="val">10000 句</div></div>
+      <div><div class="lbl">詞表</div><div class="val">894 字</div></div>
+      <div><div class="lbl">MLP 驗證困惑度</div><div class="val">16.4</div></div>
+      <div><div class="lbl">上下文長度</div><div class="val">8 字</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="console">
+  <div class="wrap">
+    <div class="shead"><h2>操作台</h2><span class="en">generator</span></div>
+    <p class="sub">輸入開頭，選好取樣強度，讓模型一個字一個字往下接。右側每一條都是模型此刻算出的機率分佈——它不是在「理解」，只是在給每個字打分。</p>
+
+    <div class="console">
+      <div class="bar">
+        <div class="promptrow">
+          <input type="text" id="prompt" value="今天" maxlength="12" placeholder="輸入一兩個字…" aria-label="提示詞">
+          <button class="btn" id="gen">生成</button>
+        </div>
+      </div>
+      <div class="bar">
+        <div class="chips" id="chips">
+          <button class="chip">今天</button>
+          <button class="chip">我</button>
+          <button class="chip">天氣</button>
+          <button class="chip">朋友</button>
+          <button class="chip">夜晚</button>
+          <button class="chip">早安</button>
+        </div>
+        <div class="controls">
+          <div class="seg" id="modelSeg">
+            <button aria-pressed="true" data-model="mlp">MLP 神經網路</button>
+            <button aria-pressed="false" data-model="ngram">n-gram 統計</button>
+          </div>
+          <div class="slider">
+            <label for="temp">溫度 <span id="tempVal">0.55</span></label>
+            <input type="range" id="temp" min="0.2" max="1.5" step="0.05" value="0.55">
+          </div>
+          <div class="slider">
+            <label for="topk">top-k <span id="topkVal">3</span></label>
+            <input type="range" id="topk" min="1" max="20" step="1" value="3">
+          </div>
+        </div>
+      </div>
+
+      <div class="readout">
+        <div class="ctxline" id="ctxline">上下文：—</div>
+        <div class="gen" id="genOut"><span class="ghost">按「生成」開始</span><span class="caret"></span></div>
+      </div>
+
+      <div class="probs">
+        <div class="head"><span>STEP DISTRIBUTION</span><b id="pplOut">—</b></div>
+        <div id="probList"><div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="chat">
+  <div class="wrap">
+    <div class="shead"><h2>對話模式</h2><span class="en">chat</span></div>
+    <p class="sub">你打字，它回一句。它其實沒有讀懂你的問題：8 個字的上下文裝不下整句問答（這也是為什麼它自己接話常常接歪）。這裡的做法是——先在語料裡找出跟你這句話最接近的問法，比對字的重疊程度，再交出那句問法的答話。想知道它自己接會變成什麼樣，把問題打得離語料遠一點試試。</p>
+
+    <div class="chat">
+      <div class="chatlog" id="chatlog">
+        <div class="msg bot">你好，想問什麼就打一句，我接著寫。</div>
+      </div>
+      <div class="chatbar">
+        <div class="promptrow">
+          <input type="text" id="chatIn" maxlength="30" placeholder="例如：你吃過飯了嗎？" aria-label="對話輸入">
+          <button class="btn" id="chatSend">送出</button>
+        </div>
+        <div class="chips" id="chatChips">
+          <button class="chip">你吃過飯了嗎？</button>
+          <button class="chip">今天天氣好嗎？</button>
+          <button class="chip">這附近有推薦的店嗎？</button>
+          <button class="chip">你幾點下班？</button>
+          <button class="chip">明天見。</button>
+        </div>
+        <div class="chatnote" id="chatNote">模型在瀏覽器裡即時推論，每次回應約 0.1 秒內完成。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="versus">
+  <div class="wrap">
+    <div class="shead"><h2>兩種引擎</h2><span class="en">compare</span></div>
+    <p class="sub">同一個提示詞、同樣的取樣參數，交給兩個模型各寫一次。左邊是查表數次數，右邊是查表找向量再過神經層——差別在於沒見過的組合，誰還接得下去。</p>
+
+    <div class="versus">
+      <div class="vcell">
+        <h3>MLP 神經語言模型 <i>embedding 32 · hidden 128</i></h3>
+        <div class="vout" id="vMlp">—</div>
+        <div class="vmeta" id="vMlpMeta">—</div>
+      </div>
+      <div class="vcell">
+        <h3>n-gram 統計模型 <i>bigram + trigram · add-k 平滑</i></h3>
+        <div class="vout" id="vNg">—</div>
+        <div class="vmeta" id="vNgMeta">—</div>
+      </div>
+    </div>
+    <button class="vbtn" id="vRun">兩邊同時生成</button>
+  </div>
+</section>
+
+<section id="inside">
+  <div class="wrap">
+    <div class="shead"><h2>內部構造</h2><span class="en">inside</span></div>
+    <p class="sub">兩個模型吃的是同一份語料，用的卻是完全不同的方式把「前文」變成「下一個字的機率」。</p>
+
+    <div class="inside">
+      <div class="icell">
+        <h3>MLP：八個字換一個分佈</h3>
+        <p>每個字先查成一條 32 維的向量，八個字接起來變成 256 維，穿過一層 tanh 隱藏層，最後對 894 個字各打一個分數，softmax 成機率。</p>
+        <div class="fig">
+          <div class="mod"><span>前 8 個字</span><b>id → 8</b></div>
+          <div class="arrow">↓ 查表</div>
+          <div class="mod"><span>字向量 Embedding</span><b>894×32</b></div>
+          <div class="arrow">↓ 攤平</div>
+          <div class="mod"><span>隱藏層 Linear + tanh</span><b>192×256</b></div>
+          <div class="arrow">↓</div>
+          <div class="mod"><span>輸出層 Linear</span><b>894×192</b></div>
+          <div class="arrow">↓ softmax</div>
+          <div class="mod"><span>894 個字的機率</span><b>和 = 1</b></div>
+        </div>
+      </div>
+      <div class="icell">
+        <h3>n-gram：數前文出現過幾次</h3>
+        <p>不看語義，只查表。前兩個字是什麼，就看語料裡這兩個字後面接過哪些字、各接過幾次。沒查到的組合退回短一點的前文。</p>
+        <div class="lookup">
+          <div class="row"><span>前文</span><span>下一個字</span><span>次數</span></div>
+          <div class="row"><span>今天</span><span class="hit">天</span><span>12</span></div>
+          <div class="row"><span>今天</span><span class="hit">，</span><span>9</span></div>
+          <div class="row"><span>今天</span><span>學</span><span>2</span></div>
+          <div class="row"><span>今天</span><span>早</span><span>1</span></div>
+        </div>
+        <p style="margin:14px 0 0;font-size:12.5px;color:#8D887A">表內為示意次數；實際頁面使用匯出的 bigram 892 組、trigram 5083 組真實計數。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="position">
+  <div class="wrap">
+    <div class="shead"><h2>位置</h2><span class="en">position</span></div>
+    <p class="sub">模型要怎麼知道哪個字在前、哪個在後？它沒有額外加一個「第幾個字」的向量。位置資訊藏在槽位裡：前 8 個字依序排進 8 個位置，每個位置接到的是隱藏層權重的不同欄位。同一批字換個順序，進到網路裡的 256 維向量就完全不同。</p>
+
+    <div class="pos">
+      <div class="poscell">
+        <h3>同一組字，換順序就換答案</h3>
+        <p>下面是模型此刻真的算出來的前三名（百分比為實際機率）。左邊兩字一換位，接下去的字就變了。</p>
+        <div class="ptable">
+          <div class="hrow"><span>前文</span><span>第 1 名</span><span>第 2 名</span><span>第 3 名</span></div>
+          <div id="probeRows"></div>
+        </div>
+        <p style="margin-top:14px;font-size:12.5px;color:#8D887A">字盤與輸出上方的數字，就是這個字落在第幾個位置。位置 1 最遠、位置 8 最近——越近的位置，對下一個字的影響越大。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <div class="shead"><h2>數字</h2><span class="en">measurements</span></div>
+    <p class="sub">困惑度（perplexity）越低，表示模型對下一個字越不意外。這裡的數字全部來自實際訓練結果。</p>
+
+    <div class="data">
+      <div class="dcell">
+        <div class="cap"><h3>訓練損失</h3><i>cross-entropy · 24 epochs</i></div>
+        <div class="chart" id="chartLoss"></div>
+        <div class="note">前 4 輪掉得最快，之後趨於平緩。損失 1.42 大致等於訓練困惑度 4.02。</div>
+      </div>
+      <div class="dcell">
+        <div class="cap"><h3>困惑度對照</h3><i>越低越好</i></div>
+        <div class="chart" id="chartPpl"></div>
+        <div class="note">驗證集困惑度 16.4 仍高於訓練集 4.0，說明模型對沒背過的組合仍不擅長預測。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <div class="shead"><h2>它能做到什麼，做不到什麼</h2><span class="en">limits</span></div>
+    <div class="limits">
+      <div class="limit">
+        <h4>只看 8 個字</h4>
+        <p>上下文固定 8 字。超過這個距離的資訊一律被丟掉，所以它接不出需要長距離呼應的句子。</p>
+      </div>
+      <div class="limit">
+        <h4>語料是拼出來的</h4>
+        <p>10000 句裡有 8449 句由「動作 × 地點 × 人物 × 模板」組合而成，句式仍偏整齊。模型學會的是這些句型的骨架，不是自然語言的全部細節。</div>
+      </div>
+      <div class="limit">
+        <h4>沒有詞義</h4>
+        <p>字級建模，一個字就是一個編號。「開會」和「開車」的「開」在模型眼裡完全一樣。</p>
+      </div>
+      <div class="limit">
+        <h4>會復誦訓練句</h4>
+        <p>參數相對語料仍偏多，某些提示詞會讓它整句照抄訓練資料。這是過擬合的直觀表現。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    本頁模型由 chinese-lm 專案訓練後匯出：MLP 權重 int8 對稱量化後內嵌，n-gram 計數表直接內嵌，推論全部在瀏覽器完成。<br>
+    對應檔案：mlp_lm.py / ngram_lm.py / export_model.py
+  </div>
+</footer>
+
+<script src="https://fastly.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js" defer></script>
+<!-- __SCRIPT__ -->
+</body>
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+
+# 二進位模型權重與訓練圖（可由腳本重新產生）
+outputs/*.pt
+outputs/*.pkl
+outputs/*.png
+outputs/web_model.json
+outputs/generated_samples.txt

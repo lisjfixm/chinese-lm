@@ -1,0 +1,13 @@
+{
+ "ngram_2gram_ppl": 6.85,
+ "ngram_3gram_ppl": 5.72,
+ "mlp_train_ppl": 4.02,
+ "mlp_val_ppl": 16.39,
+ "train_samples": 156602,
+ "val_samples": 17159,
+ "ctx": 8,
+ "emb": 32,
+ "hidden": 192,
+ "sentences": 10000,
+ "vocab": 894
+}
