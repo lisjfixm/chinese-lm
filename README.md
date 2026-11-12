@@ -32,7 +32,8 @@ chinese-lm/
 ├── dump_model_txt.py   # 把訓練好的數據匯出成純文字 模型.txt（摘錄版，含每字二維座標）
 ├── page.tpl.html       # 網頁模板（結構與樣式）
 ├── page.js             # 網頁內推論程式（MLP 前向、n-gram 查表、取樣）
-├── build_html.py       # 把模板 + 模型資料 + page.js 合成單一 HTML
+├── build_html.py       # 把模板 + 模型資料 + page.js + vendor 腳本合成單一 HTML
+├── vendor/echarts.min.js  # 內嵌的 ECharts 5.5.1（構建時寫進單檔，不依賴 CDN）
 ├── 活字盤-中英語言模型.html  # 最終單檔示範頁（可離線開啟）
 ├── 模型.txt             # 訓練好的數據純文字匯出：詞表、n-gram 摘要、MLP 權重摘錄
 └── outputs/
@@ -227,7 +228,7 @@ python3 export_model.py   # 匯出 int8 量化權重 + bigram 計數表 → outp
 python3 build_html.py     # 合成 → 活字盤-中英語言模型.html
 ```
 
-產出的 HTML 完全離線可用：MLP 權重以 int8 對稱量化內嵌（766,734 參數），瀏覽器載入時反量化成 Float32，在 JS 裡重寫前向計算與取樣，不需要任何後端。
+產出的 HTML 完全離線可用：MLP 權重以 int8 對稱量化內嵌（766,734 參數），瀏覽器載入時反量化成 Float32，在 JS 裡重寫前向計算與取樣；ECharts 圖表庫也由 `vendor/` 內嵌，不依賴任何 CDN 或後端。
 
 網頁內嵌的 n-gram 表只帶 bigram（每個前文保留前 10 個後接字）與 unigram；trigram 全表留在本機 `outputs/ngram_model.pkl`，沒有內嵌進單檔 HTML，以免檔案過大。
 

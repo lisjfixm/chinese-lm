@@ -16,11 +16,14 @@ def main() -> None:
         js = f.read()
     with open(os.path.join(OUT_DIR, "web_model.json"), encoding="utf-8") as f:
         data = json.load(f)
+    with open(os.path.join(HERE, "vendor", "echarts.min.js"), encoding="utf-8") as f:
+        echarts = f.read()
 
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
     block = ('<script id="model-data" type="application/json">' + payload + '</script>\n'
              '<script>\n' + js + '\n</script>')
-    html = tpl.replace("<!-- __SCRIPT__ -->", block)
+    html = tpl.replace("<!-- __ECHARTS__ -->", "<script>\n" + echarts + "\n</script>")
+    html = html.replace("<!-- __SCRIPT__ -->", block)
 
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         f.write(html)
