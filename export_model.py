@@ -70,18 +70,89 @@ def token_type(ch: str) -> str:
     return "punct"
 
 
-def export_embmap(model: CharMLPLM, itos: list[str]) -> list:
-    """把 32 維字向量用 PCA 投影到二維，當成每個字元的「座標」。
+QWEN_DIR = os.path.join(HERE, "data-src", "qwen")
+QWEN_BIN = os.path.join(QWEN_DIR, "token_embd_q4k.bin")
+QWEN_VOCAB = os.path.join(QWEN_DIR, "vocab-full.txt")
+QWEN_ROW_BYTES = 2016
 
-    回傳 [[字, x, y, 類型], ...]；座標正規化到約 [-1, 1]。
-    """
-    E = model.emb.weight.detach().cpu().numpy().astype("float64")
+
+def _own_pca(E: np.ndarray) -> np.ndarray:
     Ec = E - E.mean(0, keepdims=True)
     U, S, Vt = np.linalg.svd(Ec, full_matrices=False)
     co = Ec @ Vt[:2].T
-    co = co / (np.abs(co).max() + 1e-9)
-    return [[itos[i], round(float(co[i, 0]), 3), round(float(co[i, 1]), 3), token_type(itos[i])]
-            for i in range(len(itos))]
+    return co / (np.abs(co).max() + 1e-9)
+
+
+def _qwen_vocab_map() -> dict | None:
+    if not os.path.exists(QWEN_VOCAB):
+        return None
+    m: dict[str, int] = {}
+    for line in open(QWEN_VOCAB, encoding="utf-8"):
+        if line.startswith("#"):
+            continue
+        p = line.rstrip("\n").split("\t")
+        if len(p) >= 2:
+            try:
+                m[p[1]] = int(p[0])
+            except ValueError:
+                pass
+    return m
+
+
+def export_embmap(model: CharMLPLM, itos: list[str]):
+    """每個字元的二維座標。
+
+    優先使用本地 data-src/qwen 的 Qwen2.5-7B 嵌入（3584 維，PCA 投影二維）；
+    對應不到的字回退到本模型自訓的 32 維向量 PCA。回傳 (embmap, 對應數, 來源)。
+    """
+    E = model.emb.weight.detach().cpu().numpy().astype("float64")
+    own = _own_pca(E)
+
+    qmap: dict | None = None
+    n_match = 0
+    source = "own-mlp"
+    vmap = _qwen_vocab_map()
+    if vmap and os.path.exists(QWEN_BIN):
+        try:
+            from gguf import dequantize, GGMLQuantizationType
+            from opencc import OpenCC
+            cc = OpenCC("t2s")
+            resolve: dict[str, int] = {}
+            for ch in itos:
+                if ch in vmap:
+                    resolve[ch] = vmap[ch]
+                else:
+                    simp = cc.convert(ch)
+                    if simp in vmap:
+                        resolve[ch] = vmap[simp]
+            if resolve:
+                raw = np.frombuffer(open(QWEN_BIN, "rb").read(), dtype=np.uint8)
+                names = list(resolve)
+                M = []
+                for ch in names:
+                    i = resolve[ch]
+                    row = raw[i * QWEN_ROW_BYTES:(i + 1) * QWEN_ROW_BYTES]
+                    M.append(np.asarray(dequantize(row, GGMLQuantizationType.Q4_K), dtype="float32"))
+                M = np.stack(M)
+                Mc = M - M.mean(0, keepdims=True)
+                U, S, Vt = np.linalg.svd(Mc, full_matrices=False)
+                qco = Mc @ Vt[:2].T
+                qco = qco / (np.abs(qco).max() + 1e-9)
+                qmap = {names[i]: qco[i] for i in range(len(names))}
+                n_match = len(names)
+                source = "qwen2.5-7b"
+        except Exception as e:  # 本機缺檔案或套件時退回自訓向量
+            print("Qwen 嵌入讀取失敗，改用自訓向量：", e)
+            qmap = None
+
+    emb = []
+    for i, ch in enumerate(itos):
+        if qmap and ch in qmap:
+            x, y = qmap[ch]
+        else:
+            x, y = own[i]
+        emb.append([ch, round(float(x), 3), round(float(y), 3), token_type(ch)])
+    return emb, n_match, source
 
 
 def main() -> None:
@@ -126,6 +197,8 @@ def main() -> None:
             if len(q) >= 2 and len(a) >= 1 and q[-1] in "？?" and "—" not in a:
                 dialogs.append([q, a])
 
+    embmap, qwen_matched, emb_source = export_embmap(model, mlp["itos"])
+
     data = {
         "meta": {
             "sentences": int(metrics["sentences"]),
@@ -145,9 +218,11 @@ def main() -> None:
             "trigram_entries": len(ngram.counts),
             "probe": probes,
             "dialogs": dialogs,
+            "emb_source": emb_source,
+            "qwen_matched": qwen_matched,
         },
         "itos": list(mlp["itos"]),
-        "embmap": export_embmap(model, mlp["itos"]),
+        "embmap": embmap,
         "sos": mlp["vocab"][SOS],
         "mlp": {
             "emb": quantize(model.emb.weight),

@@ -45,7 +45,10 @@
     set('ngramNote', '表內為示意次數；實際頁面使用匯出的 bigram ' + m.bigram_entries + ' 組真實計數。');
     set('pplNote', '驗證集困惑度 ' + (+m.mlp_val_ppl).toFixed(1) + ' 高於訓練集 ' +
       (+m.mlp_train_ppl).toFixed(1) + '，說明模型對沒背過的組合仍不擅長預測。');
-    set('embDim', EMB);
+    var qwen = m.emb_source === 'qwen2.5-7b';
+    set('embSrc', qwen ? 'Qwen2.5-7B' : '本模型自訓向量');
+    set('embDim', qwen ? 3584 : EMB);
+    set('embMatch', m.qwen_matched ? (m.qwen_matched + ' / ' + m.vocab + ' 字') : '');
     var loss = DATA.loss || [];
     if (loss.length) {
       set('lossCap', 'cross-entropy · ' + loss.length + ' epochs');

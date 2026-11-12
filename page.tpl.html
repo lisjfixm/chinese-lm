@@ -593,7 +593,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="embed">
   <div class="wrap">
     <div class="shead"><h2>字元的座標</h2><span class="en">embedding map</span></div>
-    <p class="sub">每個字元在模型裡都是一條 <span id="embDim">32</span> 維的向量，可以想成它在一張「字詞地圖」上的座標。這裡用 PCA 把高維向量壓到二維畫出來：常出現在相似上下文的字，距離通常比較近。點任一點，可把該字帶入操作台的提示詞。</p>
+    <p class="sub">座標取自 <span id="embSrc">Qwen2.5-7B</span> 參考字向量（<span id="embDim">3584</span> 維，PCA 壓到二維；本模型自訓的 32 維向量用在前面的生成推論）。語義相近的字在圖上通常比較近，已對應 <span id="embMatch"></span>。點任一點，可把該字帶入操作台的提示詞。</p>
     <div class="embedbar">
       <input type="text" id="embSearch" maxlength="4" placeholder="搜尋一個字…" aria-label="搜尋字元">
       <div class="legend" id="embLegend"></div>
