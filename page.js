@@ -290,17 +290,34 @@
       pplOut = el('pplOut');
   var curModel = 'mlp', job = null;
 
+  /* WebLLM（瀏覽器端 WebGPU 推論）。模型權重首次執行時由瀏覽器下載並快取，
+     無法內嵌進單一 HTML；改模型只換下面的 model id。
+     Qwen2.5 可選：0.5B / 1.5B / 3B / 7B（7B 約需 5GB 顯示記憶體）。 */
+  var WL_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.88/es2022/web-llm.mjs';
+  var WL_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
+  var wlEngine = null, wlPromise = null;
+
+  function selectSeg(model) {
+    var kids = el('modelSeg').querySelectorAll('button');
+    for (var i = 0; i < kids.length; i++) {
+      kids[i].setAttribute('aria-pressed', kids[i].getAttribute('data-model') === model ? 'true' : 'false');
+    }
+    curModel = model;
+    probList.innerHTML = '<div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div>';
+    pplOut.textContent = '—';
+  }
+
   el('modelSeg').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('button') : null;
     if (!b) return;
-    var kids = this.querySelectorAll('button');
-    for (var i = 0; i < kids.length; i++) {
-      kids[i].setAttribute('aria-pressed', kids[i] === b ? 'true' : 'false');
-    }
-    curModel = b.getAttribute('data-model');
-    probList.innerHTML = '<div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div>';
-    pplOut.textContent = '—';
+    selectSeg(b.getAttribute('data-model'));
   });
+
+  function backToMlp(reason) {
+    selectSeg('mlp');
+    pplOut.textContent = reason;
+    setTimeout(startJob, 250);
+  }
 
   el('chips').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.chip') : null;
@@ -411,6 +428,7 @@
     var chars = Array.from(prompt);
     var hist = padHist().concat(enc(prompt));
     var temp = +tempEl.value, topk = +topkEl.value;
+    if (model === 'webq') { wlJob(prompt, chars, temp, topk); return; }
     var cap = chars.length + 26;
     var my = { stop: false, logp: 0, n: 0 };
     job = my;
@@ -458,6 +476,77 @@
       setTimeout(tick, 62);
     }
     setTimeout(tick, 90);
+  }
+
+  /* ---------- 瀏覽器端 Qwen（WebLLM / WebGPU） ---------- */
+  function wlJob(prompt, chars, temp, topk) {
+    var cap = chars.length + 80;
+    var my = { stop: false, done: false };
+    job = my;
+    genBtn.textContent = '停止';
+    genBtn.classList.add('pause');
+    renderOut(chars, true);
+    renderTraj(chars);
+    ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+    probList.innerHTML = '<div class="prow"><div class="ch">Qwen</div><div class="track"></div><div class="pc">瀏覽器推論</div></div>';
+
+    function finish() {
+      my.stop = true;
+      if (job !== my) return;
+      job = null;
+      genBtn.textContent = '生成';
+      genBtn.classList.remove('pause');
+      if (!my.done) { renderOut(chars, false); renderTraj(chars); my.done = true; }
+    }
+    function fail(reason) { finish(); backToMlp(reason); }
+
+    if (!('gpu' in navigator)) {
+      fail('此瀏覽器不支援 WebGPU（需 Chrome／Edge 113+），已退回 MLP');
+      return;
+    }
+
+    (async function () {
+      try {
+        if (!wlPromise) {
+          pplOut.textContent = '載入 WebLLM 引擎…';
+          var mod = await import(WL_CDN);
+          pplOut.textContent = '下載 Qwen 模型（首次約數百 MB，之後由瀏覽器快取）…';
+          wlPromise = mod.CreateMLCEngine(WL_MODEL, {
+            initProgressCallback: function (p) {
+              if (p && p.text) pplOut.textContent = p.text;
+            }
+          });
+          wlEngine = await wlPromise;
+        }
+        pplOut.textContent = 'Qwen 生成中…';
+        var stream = await wlEngine.chat.completions.create({
+          messages: [
+            { role: 'system', content: '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。' },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          temperature: temp,
+          top_k: topk,
+          max_tokens: 80
+        });
+        for await (var chunk of stream) {
+          if (my.stop) break;
+          var delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta)
+            ? chunk.choices[0].delta.content : '';
+          if (delta) {
+            Array.from(delta).forEach(function (ch) {
+              if (chars.length < cap) chars.push(ch);
+            });
+            renderOut(chars, true);
+            renderTraj(chars);
+            ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+          }
+        }
+        finish();
+      } catch (err) {
+        fail('Qwen 載入或推論失敗（' + (err && err.message ? err.message : '未知錯誤') + '），已退回 MLP');
+      }
+    })();
   }
 
   /* ---------- 兩引擎對比 ---------- */
