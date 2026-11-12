@@ -74,6 +74,8 @@ QWEN_DIR = os.path.join(HERE, "data-src", "qwen")
 QWEN_BIN = os.path.join(QWEN_DIR, "token_embd_q4k.bin")
 QWEN_VOCAB = os.path.join(QWEN_DIR, "vocab-full.txt")
 QWEN_ROW_BYTES = 2016
+# 本模型控制符 → Qwen 對應特殊 token（id 見 Qwen2.5 詞表）
+SPECIAL_QWEN = {"<S>": 151644, "</S>": 151643, "<UNK>": 3122}
 
 
 def _own_pca(E: np.ndarray) -> np.ndarray:
@@ -100,10 +102,11 @@ def _qwen_vocab_map() -> dict | None:
 
 
 def export_embmap(model: CharMLPLM, itos: list[str]):
-    """每個字元的二維座標。
+    """每個字元的二維座標（全部落在 Qwen2.5-7B 嵌入空間）。
 
-    優先使用本地 data-src/qwen 的 Qwen2.5-7B 嵌入（3584 維，PCA 投影二維）；
-    對應不到的字回退到本模型自訓的 32 維向量 PCA。回傳 (embmap, 對應數, 來源)。
+    一般字元直接取本地 data-src/qwen 的 3584 維嵌入 PCA 投影；控制符對應到
+    Qwen 特殊 token；詞表缺字在自訓 32 維空間找最近鄰借用 Qwen 座標。僅當本地
+    Qwen 素材讀取失敗時，才退回自訓向量 PCA。回傳 (embmap, 對應數, 來源, 借用數)。
     """
     E = model.emb.weight.detach().cpu().numpy().astype("float64")
     own = _own_pca(E)
@@ -119,7 +122,9 @@ def export_embmap(model: CharMLPLM, itos: list[str]):
             cc = OpenCC("t2s")
             resolve: dict[str, int] = {}
             for ch in itos:
-                if ch in vmap:
+                if ch in SPECIAL_QWEN:
+                    resolve[ch] = SPECIAL_QWEN[ch]
+                elif ch in vmap:
                     resolve[ch] = vmap[ch]
                 else:
                     simp = cc.convert(ch)

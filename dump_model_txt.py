@@ -38,12 +38,20 @@ def main() -> None:
     itos = pt["itos"]
     vocab = pt["vocab"]
 
-    # 字向量 PCA 二維座標（與網頁 embmap 同一投影）
-    E = sd["emb.weight"].detach().cpu().numpy().astype("float64")
-    Ec = E - E.mean(0, keepdims=True)
-    _U, _S, Vt = np.linalg.svd(Ec, full_matrices=False)
-    coord = Ec @ Vt[:2].T
-    coord = coord / (np.abs(coord).max() + 1e-9)
+    # 二維座標：優先讀網頁匯出的 Qwen2.5-7B 參考嵌入投影；web_model.json 缺檔時退回自訓 PCA
+    web_path = os.path.join(OUT, "web_model.json")
+    coord = None
+    if os.path.exists(web_path):
+        web = json.load(open(web_path, encoding="utf-8"))
+        if web.get("embmap"):
+            coord = [(round(float(p[1]), 3), round(float(p[2]), 3)) for p in web["embmap"]]
+    if coord is None:
+        E = sd["emb.weight"].detach().cpu().numpy().astype("float64")
+        Ec = E - E.mean(0, keepdims=True)
+        _U, _S, Vt = np.linalg.svd(Ec, full_matrices=False)
+        c = Ec @ Vt[:2].T
+        c = c / (np.abs(c).max() + 1e-9)
+        coord = [(float(c[i, 0]), float(c[i, 1])) for i in range(len(itos))]
 
     lines: list[str] = []
     w = lines.append
@@ -77,10 +85,10 @@ def main() -> None:
     w("")
 
     # 二、詞表與二維座標
-    w("二、詞表與字向量座標（id → 字，PCA 二維 x / y）")
+    w("二、詞表與字向量座標（id → 字，Qwen2.5-7B 參考嵌入 PCA 二維 x / y）")
     w("-" * 40)
     for i, ch in enumerate(itos):
-        w(f"{i}\t{ch}\t{coord[i, 0]:.3f}\t{coord[i, 1]:.3f}")
+        w(f"{i}\t{ch}\t{coord[i][0]:.3f}\t{coord[i][1]:.3f}")
     w("")
 
     # 三、n-gram 統計
