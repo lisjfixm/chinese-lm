@@ -48,7 +48,12 @@
     var qwen = m.emb_source === 'qwen2.5-7b';
     set('embSrc', qwen ? 'Qwen2.5-7B' : '本模型自訓向量');
     set('embDim', qwen ? 3584 : EMB);
-    set('embMatch', m.qwen_matched ? (m.qwen_matched + ' / ' + m.vocab + ' 字') : '');
+    var matchTxt = '';
+    if (qwen && m.qwen_matched) {
+        matchTxt = m.qwen_matched + ' 字直接對應';
+        if (m.qwen_borrowed) matchTxt += ' · ' + m.qwen_borrowed + ' 字借用最近鄰';
+    }
+    set('embMatch', matchTxt);
     var loss = DATA.loss || [];
     if (loss.length) {
       set('lossCap', 'cross-entropy · ' + loss.length + ' epochs');

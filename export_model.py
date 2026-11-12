@@ -141,9 +141,23 @@ def export_embmap(model: CharMLPLM, itos: list[str]):
                 qmap = {names[i]: qco[i] for i in range(len(names))}
                 n_match = len(names)
                 source = "qwen2.5-7b"
+                # Qwen 詞表沒有的生僻字：在自訓 32 維空間找最近鄰，借用其 Qwen 座標
+                stoi = {c: i for i, c in enumerate(itos)}
+                En = E / (np.linalg.norm(E, axis=1, keepdims=True) + 1e-9)
+                matched_idx = [stoi[c] for c in names]
+                Mown = En[matched_idx]
+                n_borrow = 0
+                for i, ch in enumerate(itos):
+                    if ch in qmap or token_type(ch) == "sp":
+                        continue
+                    sims = Mown @ En[i]
+                    j = matched_idx[int(np.argmax(sims))]
+                    qmap[ch] = qmap[itos[j]]
+                    n_borrow += 1
         except Exception as e:  # 本機缺檔案或套件時退回自訓向量
             print("Qwen 嵌入讀取失敗，改用自訓向量：", e)
             qmap = None
+            n_borrow = 0
 
     emb = []
     for i, ch in enumerate(itos):
@@ -152,7 +166,7 @@ def export_embmap(model: CharMLPLM, itos: list[str]):
         else:
             x, y = own[i]
         emb.append([ch, round(float(x), 3), round(float(y), 3), token_type(ch)])
-    return emb, n_match, source
+    return emb, n_match, source, n_borrow
 
 
 def main() -> None:
@@ -197,7 +211,7 @@ def main() -> None:
             if len(q) >= 2 and len(a) >= 1 and q[-1] in "？?" and "—" not in a:
                 dialogs.append([q, a])
 
-    embmap, qwen_matched, emb_source = export_embmap(model, mlp["itos"])
+    embmap, qwen_matched, emb_source, qwen_borrowed = export_embmap(model, mlp["itos"])
 
     data = {
         "meta": {
@@ -220,6 +234,7 @@ def main() -> None:
             "dialogs": dialogs,
             "emb_source": emb_source,
             "qwen_matched": qwen_matched,
+            "qwen_borrowed": qwen_borrowed,
         },
         "itos": list(mlp["itos"]),
         "embmap": embmap,
