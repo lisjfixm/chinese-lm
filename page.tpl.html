@@ -50,6 +50,8 @@ body::before{
 .brand{font-family:var(--serif);font-size:20px;letter-spacing:.14em}
 .brand em{font-style:normal;color:var(--cin)}
 .topnote{font-family:var(--mono);font-size:11.5px;color:var(--mute);letter-spacing:.06em}
+.toplink{background:none;border:0;color:var(--cel);font-family:var(--mono);font-size:11.5px;cursor:pointer;letter-spacing:.06em}
+.toplink:hover{color:var(--paper)}
 
 /* ---------- 首屏 ---------- */
 .hero{padding:52px 0 44px;border-bottom:1px solid var(--line)}
@@ -107,17 +109,18 @@ h1 .tail{color:var(--cin)}
 .cell.pop{animation:stamin .3s ease-out both}
 
 .trace{
-  display:flex;align-items:baseline;gap:10px;
+  display:flex;align-items:center;gap:14px;
   margin-top:14px;
-  min-height:26px;
+  min-height:44px;
   font-size:13px;
   color:var(--mute);
   flex-wrap:wrap;
 }
 .trace .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#6F695E}
-.trace .alts{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--serif);color:#C9C2B2}
+.trace .alts{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--serif);color:#C9C2B2;min-height:24px}
 .trace .alts span{font-size:15px}
 .trace .alts i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);margin-left:3px}
+.trace .seg{margin-left:auto}
 
 .stats{
   margin-top:34px;
@@ -187,14 +190,13 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
   cursor:pointer;
 }
 .chip:hover{border-color:var(--paper);color:var(--paper)}
-.chip:hover .mk{width:100%}
 
 .controls{display:flex;flex-wrap:wrap;gap:22px;align-items:center}
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{
   min-height:44px;
-  min-width:56px;
-  padding:0 20px;
+  min-width:52px;
+  padding:0 18px;
   background:transparent;
   border:0;
   color:var(--mute);
@@ -203,6 +205,7 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
   cursor:pointer;
   letter-spacing:0;
 }
+.seg button + button{border-left:1px solid var(--line)}
 .seg button[aria-pressed=true]{background:rgba(192,69,46,.16);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cin)}
 .slider{display:flex;flex-direction:column;gap:2px;min-width:132px;flex:1 1 132px}
 .slider label{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;display:flex;justify-content:space-between}
@@ -237,69 +240,32 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 @keyframes blink{50%{opacity:0}}
 
 .probs{padding:18px 16px 22px}
-#probList{display:grid}
 .probs .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .probs .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
 .probs .head b{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--paper)}
+.probtag{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.probtag .ch{font-family:var(--serif);font-size:17px}
+.probtag .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
 .traj{padding:18px 16px 22px;border-top:1px solid var(--line)}
 .traj .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .traj .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
 #trajMap{height:260px}
-.prow{display:grid;grid-template-columns:34px 1fr 46px;align-items:center;gap:12px;padding:3px 0}
-.prow .ch{font-family:var(--serif);font-size:17px;text-align:center}
-.prow .track{height:10px;background:rgba(231,225,210,.06);position:relative}
-.prow .fill{position:absolute;left:0;top:0;height:100%;background:var(--cin);transition:width .22s ease}
-.prow:first-child .fill{background:var(--cin)}
-.prow .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute);text-align:right}
 
-/* ---------- 對照 ---------- */
-.versus{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.vcell{background:var(--ink);padding:22px 18px}
-.vcell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline}
-.vcell h3 i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);letter-spacing:.06em}
-.vout{
-  font-family:var(--serif);font-size:19px;line-height:1.7;margin-top:14px;
-  min-height:5.1em;color:#D9D2C2;word-break:break-all;
+/* ---------- 對話 ---------- */
+.chat{margin-top:28px;border:1px solid var(--line)}
+.chatlog{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px;max-height:340px;overflow:auto}
+.msg{
+  max-width:88%;padding:9px 12px;border:1px solid var(--line);
+  font-family:var(--serif);font-size:16px;line-height:1.6;word-break:break-all;
 }
-.vmeta{font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:12px;letter-spacing:.04em}
-.vbtn{
-  margin-top:26px;min-height:44px;padding:0 22px;
-  border:1px solid var(--cel);background:transparent;color:var(--cel);
-  font-family:var(--sans);font-size:14px;letter-spacing:.08em;cursor:pointer;
-}
-.vbtn:hover{background:rgba(132,161,150,.12)}
+.msg.user{align-self:flex-end;border-color:rgba(192,69,46,.55);color:var(--paper)}
+.msg.bot{align-self:flex-start;color:#D9D2C2}
+.msg.bot.wait{color:#6F695E}
+.msg small{display:block;font-family:var(--mono);font-size:10px;color:#6F695E;margin-top:4px}
+.chatbar{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.chatnote{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.04em}
 
-/* ---------- 構造 ---------- */
-.inside{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.icell{background:var(--ink);padding:22px 18px}
-.icell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:4px}
-.icell p{font-size:13.5px;color:#B0A99A;margin-bottom:16px}
-.fig{display:flex;flex-direction:column;gap:0;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
-.mod{
-  border:1px solid var(--line);
-  padding:9px 12px;
-  display:flex;justify-content:space-between;gap:10px;
-  color:#C9C2B2;
-}
-.mod span{font-family:var(--sans);font-size:13px}
-.mod b{font-weight:400;color:var(--mute)}
-.arrow{align-self:center;color:#5E5A50;padding:3px 0;font-size:11px}
-.lookup{
-  border:1px solid var(--line);
-}
-.lookup .row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line2)}
-.lookup .row:last-child{border-bottom:0}
-.lookup .row span{padding:8px 10px;font-family:var(--serif);font-size:14px;border-right:1px solid var(--line2);text-align:center}
-.lookup .row span:last-child{border-right:0}
-.lookup .row span.hit{color:var(--cin)}
-
-/* ---------- 數據 ---------- */
-.data{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.dcell{background:var(--ink);padding:20px 18px}
-.dcell .cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
-.dcell .cap h3{font-family:var(--serif);font-size:15px;font-weight:600}
-.dcell .cap i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute)}
-.chart{width:100%;height:190px}
+/* ---------- 座標 ---------- */
 .embedbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:18px 0 10px}
 .embedbar input{flex:0 1 200px;min-height:40px;font-size:16px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
@@ -307,6 +273,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 .legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
 #embMap{height:420px}
 .note{font-size:12.5px;color:#8D887A;line-height:1.65;margin-top:14px;border-left:1px solid var(--line);padding-left:12px}
+.chart{width:100%;height:190px}
 
 /* ---------- 界限 ---------- */
 .limits{margin-top:26px;border-top:1px solid var(--line)}
@@ -321,6 +288,32 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 
 footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--mono);letter-spacing:.04em;line-height:2}
 
+/* ---------- 開機閘門 ---------- */
+.boot{
+  position:fixed;inset:0;z-index:50;
+  background:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.boot.hide{display:none}
+.boot-card{
+  width:100%;max-width:430px;border:1px solid var(--line);
+  background:var(--ink2);padding:30px 26px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.boot-brand{font-family:var(--serif);font-size:24px;letter-spacing:.14em}
+.boot-brand em{font-style:normal;color:var(--cin)}
+.boot-sub{font-size:13.5px;color:#B9B2A2}
+.boot-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.boot-lbl{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em;width:44px}
+.boot-status{
+  min-height:20px;font-family:var(--mono);font-size:11.5px;color:#84A196;
+  letter-spacing:.04em;line-height:1.6;
+}
+.boot-status.err{color:var(--cin)}
+.boot-hint{font-size:11.5px;color:#6F695E;line-height:1.7}
+.boot-card .btn{width:100%}
+
 /* ---------- 桌面 ---------- */
 @media (min-width:768px){
   body{font-size:15.5px}
@@ -331,10 +324,6 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
   .bar{flex-direction:row;align-items:center;padding:16px 20px}
   .bar .promptrow{flex:1 1 auto}
   .controls{flex-wrap:nowrap}
-  #probList{grid-template-columns:1fr 1fr;column-gap:32px}
-  .versus{grid-template-columns:1fr 1fr}
-  .inside{grid-template-columns:1fr 1fr}
-  .data{grid-template-columns:1fr 1fr}
   .limit{grid-template-columns:180px 1fr;align-items:baseline}
   .limit p{grid-column:2}
   section{padding:74px 0}
@@ -351,51 +340,54 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 .tk b{font-weight:400;line-height:1.3}
 .tk.cur b{color:var(--cin)}
 
-.pos{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.poscell{background:var(--ink);padding:22px 18px}
-.poscell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:6px}
-.poscell p{font-size:13.5px;color:#B0A99A}
-.ptable{margin-top:16px;border:1px solid var(--line);overflow:hidden}
-.ptable .hrow{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line);
-  font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:.06em}
-.ptable .row{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line2)}
-.ptable .hrow span,.ptable .row span{padding:7px 8px;text-align:center;border-right:1px solid var(--line2);min-width:0}
-.ptable .hrow span:last-child,.ptable .row span:last-child{border-right:0}
-.ptable .row span:first-child{font-family:var(--serif);font-size:15px;color:var(--paper)}
-.ptable .row b{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--cel)}
-.ptable .row em{font-family:var(--mono);font-style:normal;font-size:10.5px;color:var(--mute);margin-left:3px}
-
-.chat{margin-top:28px;border:1px solid var(--line)}
-.chatlog{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px;max-height:340px;overflow:auto}
-.msg{
-  max-width:88%;padding:9px 12px;border:1px solid var(--line);
-  font-family:var(--serif);font-size:16px;line-height:1.6;word-break:break-all;
-}
-.msg.user{align-self:flex-end;border-color:rgba(192,69,46,.55);color:var(--paper)}
-.msg.bot{align-self:flex-start;color:#D9D2C2}
-.msg.bot.wait{color:#6F695E}
-.msg small{display:block;font-family:var(--mono);font-size:10px;color:#6F695E;margin-top:4px}
-.chatbar{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 @media (prefers-reduced-motion:reduce){
   .cell.pop{animation:none}
   .caret{animation:none}
-  .prow .fill{transition:none}
 }
 </style>
 </head>
 <body>
 
+<!-- ===== 開機閘門：先選後端與尺寸，連上 Qwen 再進入 ===== -->
+<div class="boot" id="boot">
+  <div class="boot-card">
+    <div class="boot-brand">活字盤 <em>/</em> Qwen</div>
+    <p class="boot-sub">選擇後端與模型尺寸，連上 Qwen 後再進入示範。</p>
+    <div class="boot-row">
+      <span class="boot-lbl">後端</span>
+      <div class="seg" id="beSeg">
+        <button data-be="ollama" aria-pressed="true">Ollama</button>
+        <button data-be="web" aria-pressed="false">Web</button>
+      </div>
+    </div>
+    <div class="boot-row">
+      <span class="boot-lbl">尺寸</span>
+      <div class="seg" id="bootSizeSeg">
+        <button data-model="0.5" aria-pressed="false">0.5</button>
+        <button data-model="3" aria-pressed="true">3</button>
+        <button data-model="7" aria-pressed="false">7</button>
+      </div>
+    </div>
+    <div class="boot-status" id="bootStatus">尚未連線。</div>
+    <button class="btn" id="bootEnter">進入</button>
+    <p class="boot-hint">Ollama：本機 localhost:11434，模型需先 ollama pull；Web：瀏覽器 WebGPU 下載權重並快取，7B 需較大顯示記憶體。</p>
+  </div>
+</div>
+
 <header class="top">
   <div class="wrap">
     <div class="brand">活字盤 <em>/</em> 下一個字</div>
-    <div class="topnote" id="topNote">char-level language model</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="topnote" id="topNote">char-level language model</div>
+      <button class="toplink" id="switchBe" type="button">切換後端</button>
+    </div>
   </div>
 </header>
 
 <section class="hero">
   <div class="wrap">
     <h1>下一個<span class="tail">字</span></h1>
-    <p class="lede">模型只做一件事：看著前面的幾個字，猜下一個字是什麼。它從 <span id="ledeCount">—</span> 裡學會這件事，現在在瀏覽器裡以 <b>int8 量化權重</b> 即時運行，每個字都是現場算出來的。</p>
+    <p class="lede">模型看著前面的文字，一個字一個字往下接。本頁示範由 <b>Qwen2.5</b> 產出回答；字盤上每個字上方標出它在 Qwen 參考嵌入空間的二維座標。</p>
 
     <!-- 首屏：即時生成的字盤帶 -->
     <div class="band" id="band" aria-label="模型即時生成的字盤">
@@ -416,14 +408,19 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     </div>
     <div class="trace" id="trace">
       <span class="lbl">NEXT</span>
-      <span class="alts" id="traceAlts">正在載入權重…</span>
+      <span class="alts" id="traceAlts">連線後顯示下一字…</span>
+      <div class="seg" id="heroSeg">
+        <button data-model="0.5" aria-pressed="false">0.5</button>
+        <button data-model="3" aria-pressed="true">3</button>
+        <button data-model="7" aria-pressed="false">7</button>
+      </div>
     </div>
 
     <div class="stats">
+      <div><div class="lbl">後端</div><div class="val" id="statBe">—</div></div>
+      <div><div class="lbl">模型</div><div class="val" id="statModel">—</div></div>
+      <div><div class="lbl">座標來源</div><div class="val" id="statEmb">—</div></div>
       <div><div class="lbl">語料</div><div class="val" id="statSent">—</div></div>
-      <div><div class="lbl">詞表</div><div class="val" id="statVocab">—</div></div>
-      <div><div class="lbl">MLP 驗證困惑度</div><div class="val" id="statPpl">—</div></div>
-      <div><div class="lbl">上下文長度</div><div class="val" id="statCtx">—</div></div>
     </div>
   </div>
 </section>
@@ -431,7 +428,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="console">
   <div class="wrap">
     <div class="shead"><h2>操作台</h2><span class="en">generator</span></div>
-    <p class="sub">輸入開頭，選好取樣強度，讓模型一個字一個字往下接。右側每一條都是模型此刻算出的機率分佈——它不是在「理解」，只是在給每個字打分。</p>
+    <p class="sub">輸入開頭，選好取樣強度，讓 Qwen 一個字一個字往下接；右側軌跡圖把已生成的字依座標連成路徑。</p>
 
     <div class="console">
       <div class="bar">
@@ -452,11 +449,6 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">i love</button>
         </div>
         <div class="controls">
-          <div class="seg" id="modelSeg">
-            <button aria-pressed="false" data-model="0.5">0.5</button>
-            <button aria-pressed="true" data-model="3">3</button>
-            <button aria-pressed="false" data-model="7">7</button>
-          </div>
           <div class="slider">
             <label for="temp">溫度 <span id="tempVal">0.55</span></label>
             <input type="range" id="temp" min="0.2" max="1.5" step="0.05" value="0.55">
@@ -466,7 +458,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
             <input type="range" id="topk" min="1" max="20" step="1" value="3">
           </div>
         </div>
-        <p class="ctxline" id="webqNote">本機 Ollama（localhost:11434）：0.5／3／7 對應 qwen2.5:0.5b／3b／7b。模型需先用 ollama pull 下載；請用本機伺服器以 http://localhost 開啟本頁（直接開 file:// 會被 CORS 擋下），服務未啟動或缺檔時會在下方顯示原因。</p>
+        <p class="ctxline" id="webqNote">模型由選定後端提供：Ollama 走本機 localhost:11434；Web 走瀏覽器 WebGPU。模型未啟動或缺檔時會在下方顯示原因。</p>
       </div>
 
       <div class="readout">
@@ -475,8 +467,8 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
       </div>
 
       <div class="probs">
-        <div class="head"><span>STEP DISTRIBUTION</span><b id="pplOut">—</b></div>
-        <div id="probList"><div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div></div>
+        <div class="head"><span>ENGINE</span><b id="pplOut">—</b></div>
+        <div id="probList"><div class="probtag"><span class="ch">—</span><span class="pc">尚未連線</span></div></div>
       </div>
 
       <div class="traj">
@@ -491,7 +483,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="chat">
   <div class="wrap">
     <div class="shead"><h2>對話模式</h2><span class="en">chat</span></div>
-    <p class="sub">你打字，它回一句。它其實沒有讀懂你的問題：8 個字的上下文裝不下整句問答（這也是為什麼它自己接話常常接歪）。這裡的做法是——先在語料裡找出跟你這句話最接近的問法，比對字的重疊程度，再交出那句問法的答話。想知道它自己接會變成什麼樣，把問題打得離語料遠一點試試。</p>
+    <p class="sub">你打字，Qwen 回一句。每則對話以系統提示加上當前問題送出，不保留長段對話記憶。</p>
 
     <div class="chat">
       <div class="chatlog" id="chatlog">
@@ -509,85 +501,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">你幾點下班？</button>
           <button class="chip">明天見。</button>
         </div>
-        <div class="chatnote" id="chatNote">模型在瀏覽器裡即時推論，每次回應約 0.1 秒內完成。</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="versus">
-  <div class="wrap">
-    <div class="shead"><h2>兩種引擎</h2><span class="en">compare</span></div>
-    <p class="sub">同一個提示詞、同樣的取樣參數，交給兩個模型各寫一次。左邊是查表數次數，右邊是查表找向量再過神經層——差別在於沒見過的組合，誰還接得下去。</p>
-
-    <div class="versus">
-      <div class="vcell">
-        <h3>MLP 神經語言模型 <i>embedding 32 · hidden 128</i></h3>
-        <div class="vout" id="vMlp">—</div>
-        <div class="vmeta" id="vMlpMeta">—</div>
-      </div>
-      <div class="vcell">
-        <h3>n-gram 統計模型 <i>bigram + unigram · add-k 平滑</i></h3>
-        <div class="vout" id="vNg">—</div>
-        <div class="vmeta" id="vNgMeta">—</div>
-      </div>
-    </div>
-    <button class="vbtn" id="vRun">兩邊同時生成</button>
-  </div>
-</section>
-
-<section id="inside">
-  <div class="wrap">
-    <div class="shead"><h2>內部構造</h2><span class="en">inside</span></div>
-    <p class="sub">兩個模型吃的是同一份語料，用的卻是完全不同的方式把「前文」變成「下一個字的機率」。</p>
-
-    <div class="inside">
-      <div class="icell">
-        <h3>MLP：八個字換一個分佈</h3>
-        <p id="mlpDesc">每個字先查成一條向量，接起來攤平，穿過一層 tanh 隱藏層，最後對詞表每個字各打一個分數，softmax 成機率。</p>
-        <div class="fig">
-          <div class="mod"><span id="figCtxLbl">前 8 個字</span><b id="figCtxVal">id → 8</b></div>
-          <div class="arrow">↓ 查表</div>
-          <div class="mod"><span>字向量 Embedding</span><b id="figEmb">—</b></div>
-          <div class="arrow">↓ 攤平</div>
-          <div class="mod"><span>隱藏層 Linear + tanh</span><b id="figFc1">—</b></div>
-          <div class="arrow">↓</div>
-          <div class="mod"><span>輸出層 Linear</span><b id="figFc2">—</b></div>
-          <div class="arrow">↓ softmax</div>
-          <div class="mod"><span id="figVocab">詞表機率</span><b>和 = 1</b></div>
-        </div>
-      </div>
-      <div class="icell">
-        <h3>n-gram：數前文出現過幾次</h3>
-        <p>不看語義，只查表。前一個字是什麼，就看語料裡這個字後面接過哪些字、各接過幾次。沒查到的組合退回更短的一元統計。</p>
-        <div class="lookup">
-          <div class="row"><span>前文</span><span>下一個字</span><span>次數</span></div>
-          <div class="row"><span>今天</span><span class="hit">天</span><span>12</span></div>
-          <div class="row"><span>今天</span><span class="hit">，</span><span>9</span></div>
-          <div class="row"><span>今天</span><span>學</span><span>2</span></div>
-          <div class="row"><span>今天</span><span>早</span><span>1</span></div>
-        </div>
-        <p style="margin:14px 0 0;font-size:12.5px;color:#8D887A" id="ngramNote">表內為示意次數；實際頁面使用匯出的 bigram 真實計數。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<section id="position">
-  <div class="wrap">
-    <div class="shead"><h2>位置</h2><span class="en">position</span></div>
-    <p class="sub">模型要怎麼知道哪個字在前、哪個在後？它沒有額外加一個「第幾個字」的向量。位置資訊藏在槽位裡：前 8 個字依序排進 8 個位置，每個位置接到的是隱藏層權重的不同欄位。同一批字換個順序，進到網路裡的 256 維向量就完全不同。</p>
-
-    <div class="pos">
-      <div class="poscell">
-        <h3>同一組字，換順序就換答案</h3>
-        <p>下面是模型此刻真的算出來的前三名（百分比為實際機率）。左邊兩字一換位，接下去的字就變了。</p>
-        <div class="ptable">
-          <div class="hrow"><span>前文</span><span>第 1 名</span><span>第 2 名</span><span>第 3 名</span></div>
-          <div id="probeRows"></div>
-        </div>
-        <p style="margin-top:14px;font-size:12.5px;color:#8D887A">字盤每格上方有兩行小字：第一行是位置序號（位置 1 最遠、位置 8 最近，越近對下一個字影響越大）；第二行是這個字的字向量二維座標（PCA 投影，對照下方「字元的座標」地圖）。</p>
+        <div class="chatnote" id="chatNote">回答由選定的 Qwen 後端即時產生。</div>
       </div>
     </div>
   </div>
@@ -596,7 +510,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="embed">
   <div class="wrap">
     <div class="shead"><h2>字元的座標</h2><span class="en">embedding map</span></div>
-    <p class="sub">座標取自 <span id="embSrc">Qwen2.5-7B</span> 參考字向量（<span id="embDim">3584</span> 維，PCA 壓到二維；本模型自訓的 32 維向量用在前面的生成推論）。語義相近的字在圖上通常比較近，已對應 <span id="embMatch"></span>。點任一點，可把該字帶入操作台的提示詞。</p>
+    <p class="sub">座標取自 <span id="embSrc">Qwen2.5-7B</span> 參考字向量（<span id="embDim">3584</span> 維，PCA 壓到二維）。語義相近的字在圖上通常比較近，已對應 <span id="embMatch"></span>。點任一點，可把該字帶入操作台的提示詞。</p>
     <div class="embedbar">
       <input type="text" id="embSearch" maxlength="4" placeholder="搜尋一個字…" aria-label="搜尋字元">
       <div class="legend" id="embLegend"></div>
@@ -606,45 +520,25 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
   </div>
 </section>
 
-<section id="data">
-  <div class="wrap">
-    <div class="shead"><h2>數字</h2><span class="en">measurements</span></div>
-    <p class="sub">困惑度（perplexity）越低，表示模型對下一個字越不意外。這裡的數字全部來自實際訓練結果。</p>
-
-    <div class="data">
-      <div class="dcell">
-        <div class="cap"><h3>訓練損失</h3><i id="lossCap">cross-entropy</i></div>
-        <div class="chart" id="chartLoss"></div>
-        <div class="note" id="lossNote">損失下降趨勢見折線圖。</div>
-      </div>
-      <div class="dcell">
-        <div class="cap"><h3>困惑度對照</h3><i>越低越好</i></div>
-        <div class="chart" id="chartPpl"></div>
-        <div class="note" id="pplNote">驗證集困惑度高於訓練集，說明模型對沒背過的組合仍不擅長預測。</div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section id="limits">
   <div class="wrap">
     <div class="shead"><h2>它能做到什麼，做不到什麼</h2><span class="en">limits</span></div>
     <div class="limits">
       <div class="limit">
-        <h4>只看 8 個字</h4>
-        <p>上下文固定 8 字。超過這個距離的資訊一律被丟掉，所以它接不出需要長距離呼應的句子。</p>
+        <h4>單輪提示生成</h4>
+        <p>每則回答以系統提示加上當前問題送出，不保留長段對話記憶；上下文長短由後端模型本身決定。</p>
       </div>
       <div class="limit">
-        <h4>語料是拼出來的</h4>
-        <p>語料含一部分從網路收集的真實中英句子，也有不少模板合成句；模型學會的是常見字詞搭配與句型骨架，不是自然語言的全部細節。</div>
+        <h4>權重不在 HTML 內</h4>
+        <p>Qwen 權重保留在後端：Ollama 本機端或瀏覽器 WebGPU 快取；單一 HTML 只內嵌字元座標與圖表庫，不內嵌模型權重。</p>
       </div>
       <div class="limit">
-        <h4>沒有詞義</h4>
-        <p>字級建模，一個字就是一個編號。「開會」和「開車」的「開」在模型眼裡完全一樣。</p>
+        <h4>座標是投影</h4>
+        <p>字元地圖的二維位置是 Qwen 參考嵌入的 PCA 投影，只保留兩個主方向；平面上的遠近不等於語義上的全部關係。</p>
       </div>
       <div class="limit">
-        <h4>會復誦訓練句</h4>
-        <p>參數相對語料仍偏多，某些提示詞會讓它整句照抄訓練資料。這是過擬合的直觀表現。</p>
+        <h4>輸出有上限</h4>
+        <p>示範生成限制在約一百餘字，長文會在到達上限時截斷；溫度與 top-k 只取操作台滑桿的數值，不代表後端模型的全部取樣能力。</p>
       </div>
     </div>
   </div>
@@ -652,8 +546,8 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 
 <footer>
   <div class="wrap">
-    對話生成走本機 Ollama（Qwen2.5 0.5b／3b／7b，localhost:11434）；頁面內另內嵌專案自訓的 MLP 權重（int8 量化）與 n-gram 計數表，供對照示範在瀏覽器完成。<br>
-    對應檔案：mlp_lm.py / ngram_lm.py / export_model.py
+    示範生成走 Qwen2.5：本機 Ollama（localhost:11434）或瀏覽器 WebGPU（WebLLM）；字元座標取自 Qwen2.5-7B 參考嵌入 PCA 投影。<br>
+    對應檔案：page.tpl.html / page.js / build_html.py
   </div>
 </footer>
 

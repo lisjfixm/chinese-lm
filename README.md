@@ -30,8 +30,8 @@ chinese-lm/
 ├── reload_demo.py      # 載入已儲存模型並生成文字的示範
 ├── export_model.py     # 匯出瀏覽器用資料（int8 權重、n-gram 計數表、Qwen 參考嵌入 PCA 座標）
 ├── dump_model_txt.py   # 把訓練好的數據匯出成純文字 模型.txt（摘錄版，含每字二維座標）
-├── page.tpl.html       # 網頁模板（結構與樣式）
-├── page.js             # 網頁內推論程式（MLP 前向、n-gram 查表、取樣）
+├── page.tpl.html       # 網頁模板（開機閘門、操作台、對話、座標圖）
+├── page.js             # 網頁前端：Ollama／WebLLM 雙後端與 Qwen 生成邏輯
 ├── build_html.py       # 把模板 + 模型資料 + page.js + vendor 腳本合成單一 HTML
 ├── vendor/echarts.min.js  # 內嵌的 ECharts 5.5.1（構建時寫進單檔，不依賴 CDN）
 ├── 活字盤-中英語言模型.html  # 最終單檔示範頁（可離線開啟）
@@ -228,45 +228,46 @@ python3 export_model.py   # 匯出 int8 量化權重 + bigram 計數表 → outp
 python3 build_html.py     # 合成 → 活字盤-中英語言模型.html
 ```
 
-產出的 HTML 完全離線可用：MLP 權重以 int8 對稱量化內嵌（766,734 參數），瀏覽器載入時反量化成 Float32，在 JS 裡重寫前向計算與取樣；ECharts 圖表庫也由 `vendor/` 內嵌，不依賴任何 CDN 或後端。
+產出的 HTML 內嵌 ECharts 圖表庫（`vendor/`）與字元座標資料；Qwen 模型權重不在 HTML 內，由選定後端提供。
 
-網頁內嵌的 n-gram 表只帶 bigram（每個前文保留前 10 個後接字）與 unigram；trigram 全表留在本機 `outputs/ngram_model.pkl`，沒有內嵌進單檔 HTML，以免檔案過大。
+頁面包含：開機閘門（先選後端與尺寸，連上 Qwen 後才進入示範）、首屏即時生成的字盤（每個字上方標出二維座標）、生成操作台（溫度 / top-k / **生成軌跡座標圖**：把已生成字串的 PCA 點依順序連成軌跡）、**對話模式**，以及**字向量座標圖**（座標取自 Qwen2.5-7B 參考嵌入 3584 維向量 PCA 投影到二維，依中文字 / 英文字母 / 數字 / 標點著色，可搜尋、點選帶入提示詞）。
 
-頁面包含：首屏即時生成的字盤（每個字上方標出位置序號與字向量二維座標）、生成操作台（溫度 / top-k / 每步機率分佈 / 本次生成困惑度 / **生成軌跡座標圖**：把當前生成字串的 PCA 點依順序連成軌跡）、**個別對話模式**、兩模型同題對照、內部構造與位置說明、**字向量座標圖**（座標取自 Qwen2.5-7B 參考嵌入 3584 維向量 PCA 投影到二維，依中文字 / 英文字母 / 數字 / 標點著色，可搜尋、點選帶入提示詞；Qwen 詞表沒有的生僻字，在自訓向量空間找最近鄰借用其 Qwen 座標）、訓練曲線與困惑度圖。
+座標是 PCA 二維投影，只保留兩個主方向；原本的語義關係比這張平面圖更豐富。
 
-座標是 PCA 二維投影，只保留兩個主方向；原本的語義關係比這張平面圖更豐富。網頁地圖與 `模型.txt` 詞表段落的二維座標都取自 Qwen2.5-7B 參考嵌入；本模型自訓的 32 維向量只出現在 `模型.txt` 第四節的權重摘錄與網頁 MLP 推論中。
+對話模式直接把當前問題交由選定後端的 Qwen 生成回答，不保留長段對話記憶；每則回答以系統提示加上當前問題單輪送出。
 
-對話模式的做法是「檢索答話」：先比對字的重疊程度，找出語料中最接近的一句問法，交出它對應的答話；沒有相近問法時，才讓模型用「問句 + 破折號—」自己接話。頁面會標出比對到的問法與相似度。之所以不直接用模型生成答案，是因為 8 個字的上下文裝不下整句問答——它接兩三個字就看不到問題了。
+### 8.1 開機閘門與雙後端
 
-### 8.1 本機 Ollama Qwen2.5（0.5 / 3 / 7）
+頁面開啟後先停在開機畫面：選後端（**Ollama** 或 **Web**）與尺寸（**0.5 / 3 / 7**），連上 Qwen 後才進入示範；連線失敗時留在開機畫面顯示原因，不會直接進入主畫面。右上角「切換後端」可重新開啟這個選擇畫面。
 
-操作台頂部三顆數字按鈕切換本機 Ollama 上的 Qwen2.5 尺寸：
+尺寸對應的模型：
 
-| 按鈕 | Ollama 模型標籤 |
-| --- | --- |
-| 0.5 | `qwen2.5:0.5b` |
-| 3 | `qwen2.5:3b` |
-| 7 | `qwen2.5:7b` |
+| 按鈕 | Ollama 模型標籤 | WebLLM（WebGPU）MLC 模型 ID |
+| --- | --- | --- |
+| 0.5 | `qwen2.5:0.5b` | `Qwen2.5-0.5B-Instruct-q4f16_1-MLC` |
+| 3 | `qwen2.5:3b` | `Qwen2.5-3B-Instruct-q4f16_1-MLC` |
+| 7 | `qwen2.5:7b` | `Qwen2.5-7B-Instruct-q4f16_1-MLC` |
 
-頁面呼叫 `http://localhost:11434/api/chat`，以串流（NDJSON）逐字取回回答，溫度與 top-k 沿用操作台滑桿。
+**Ollama 後端**：頁面呼叫 `http://localhost:11434/api/chat`，生成以串流（NDJSON）逐字取回，溫度與 top-k 沿用操作台滑桿。
+
+**Web 後端**：由瀏覽器 WebGPU 推論，動態載入 `@mlc-ai/web-llm`，首次執行從網路下載 Qwen 權重並由瀏覽器快取；需要 Chrome／Edge 113+ 且支援 WebGPU。7B 在瀏覽器通常需要較大顯示記憶體，記憶體不足時請改用 0.5 或 3。
 
 執行前置：
 
-1. 本機已安裝並啟動 [Ollama](https://ollama.com) 服務（預設埠 11434）。
-2. 用到的模型先下載，例如：`ollama pull qwen2.5:3b`（0.5b、7b 同理）。
-3. 跨域（CORS）：Ollama 預設只放行 `http://localhost:*` 與 `http://127.0.0.1:*` 來源；直接用 `file://` 開檔（origin 為 `null`）或從外部網址開啟會被 403 擋下。建議在 HTML 所在目錄跑一個本機靜態伺服器（如 `python -m http.server 8000`），再開 `http://localhost:8000/…html`；或為 Ollama 設定環境變數 `OLLAMA_ORIGINS=*` 後重啟服務。
+1. Ollama 後端：本機已安裝並啟動 [Ollama](https://ollama.com) 服務（預設埠 11434），用到的模型先下載，例如 `ollama pull qwen2.5:3b`（0.5b、7b 同理）。
+2. 跨域（CORS）：Ollama 預設只放行 `http://localhost:*` 與 `http://127.0.0.1:*` 來源；直接用 `file://` 開檔（origin 為 `null`）或從外部網址開啟會被 403 擋下。建議在 HTML 所在目錄跑一個本機靜態伺服器（如 `python -m http.server 8000`），再開 `http://localhost:8000/…html`；或為 Ollama 設定環境變數 `OLLAMA_ORIGINS=*` 後重啟服務。
 
 邊界說明：
 
-- 模型權重在 Ollama 本機端，不內嵌進 HTML；HTML 內嵌的自訓 MLP／n-gram 權重只保留給頁面的對照示範面板。
-- Ollama 聊天介面不回傳逐 token 機率，因此 Ollama 生成時的機率列表只顯示模型標籤，也不計算困惑度；逐字座標、上下文行與生成軌跡圖仍照常標示。
-- 連不上服務、模型缺檔或生成中斷時，原因直接顯示在困惑度列，不會自動切換到自訓模型。
+- Qwen 權重保留在後端（Ollama 本機端或瀏覽器 WebGPU 快取），不內嵌進 HTML；單檔 HTML 只內嵌字元座標與圖表庫。
+- 後端聊天介面不回傳逐 token 機率，因此引擎列表只顯示模型標籤，也不計算困惑度；逐字座標、上下文行與生成軌跡圖仍照常標示。
+- 連不上服務、模型缺檔、WebGPU 不可用或生成中斷時，原因直接顯示在介面上，不會自動切換到其他模型。
 
 ## 九、環境需求
 
 - Python 3.10+
 - 套件：`numpy`、`torch`（CPU 即可）、`matplotlib`（畫損失曲線，選用）、`openpyxl`、`opencc-python-reimplemented`（重跑語料清洗時需要）
-- 對話生成另需本機 [Ollama](https://ollama.com)，並 `ollama pull qwen2.5:0.5b / 3b / 7b` 擇一下載
+- 示範生成二選一：本機 [Ollama](https://ollama.com)（`ollama pull qwen2.5:0.5b / 3b / 7b` 擇一下載），或支援 WebGPU 的 Chrome／Edge 113+ 走瀏覽器 WebLLM
 
 ```bash
 pip install numpy torch matplotlib openpyxl opencc-python-reimplemented

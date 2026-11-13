@@ -2,16 +2,9 @@
   'use strict';
 
   var DATA = JSON.parse(document.getElementById('model-data').textContent);
-  var ITOS = DATA.itos, V = ITOS.length;
-  var STOI = {};
-  for (var i = 0; i < V; i++) { if (!(ITOS[i] in STOI)) STOI[ITOS[i]] = i; }
-  var SOS = DATA.sos, EOS = STOI['</S>'] !== undefined ? STOI['</S>'] : 1,
-      UNK = STOI['<UNK>'] !== undefined ? STOI['<UNK>'] : 2;
-  var CTX = DATA.meta.ctx;
-  var SH = DATA.mlp.shape;
-  var EMB = SH.emb[1], HID = SH.fc1[0], IN = SH.fc1[1];
+  var CTX = (DATA.meta && DATA.meta.ctx) || 8;
 
-  /* 字元 → PCA 二維座標 [x, y] */
+  /* 字元 → Qwen 參考嵌入 PCA 二維座標 [x, y] */
   var COORD = {};
   (DATA.embmap || []).forEach(function (p) { COORD[p[0]] = [p[1], p[2]]; });
   function coordText(ch) {
@@ -20,300 +13,170 @@
   }
 
   function el(id) { return document.getElementById(id); }
+  function set(id, txt) { var e = el(id); if (e) e.textContent = txt; }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* ---------- 把匯出的指標與維度填進靜態版面 ---------- */
+  var SYS = '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。';
+
+  /* ---------- 後端與模型對應 ---------- */
+  var OLLAMA_URL = 'http://localhost:11434/api/chat';
+  var OLLAMA_TAGS = {
+    '0.5': 'qwen2.5:0.5b',
+    '3': 'qwen2.5:3b',
+    '7': 'qwen2.5:7b'
+  };
+  var WL_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.88/es2022/web-llm.mjs';
+  var WL_MODELS = {
+    '0.5': 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    '3': 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+    '7': 'Qwen2.5-7B-Instruct-q4f16_1-MLC'
+  };
+
+  var state = { be: 'ollama', size: '3', ready: false, wlEngine: null, wlKey: '' };
+  function activeTag() {
+    return state.be === 'ollama' ? OLLAMA_TAGS[state.size] : WL_MODELS[state.size];
+  }
+
+  /* ---------- 靜態中繼資料 ---------- */
   (function fillMeta() {
-    var m = DATA.meta;
-    function set(id, txt) { var e = el(id); if (e) e.textContent = txt; }
-    set('topNote', 'char-level language model / ' + m.sentences + ' 句 / ' + V + ' 字 / ' + m.params + ' 參數');
-    set('ledeCount', m.sentences + ' 句中英句子');
-    set('statSent', m.sentences + ' 句');
-    set('statVocab', V + ' 字');
-    set('statPpl', (+m.mlp_val_ppl).toFixed(1));
-    set('statCtx', CTX + ' 字');
-    set('mlpDesc', '每個字先查成一條 ' + EMB + ' 維的向量，' + CTX + ' 個字接起來變成 ' + IN +
-      ' 維，穿過一層 tanh 隱藏層，最後對 ' + V + ' 個字各打一個分數，softmax 成機率。');
-    set('figCtxLbl', '前 ' + CTX + ' 個字');
-    set('figCtxVal', 'id → ' + CTX);
-    set('figEmb', V + '×' + EMB);
-    set('figFc1', HID + '×' + IN);
-    set('figFc2', V + '×' + HID);
-    set('figVocab', V + ' 個字的機率');
-    set('ngramNote', '表內為示意次數；實際頁面使用匯出的 bigram ' + m.bigram_entries + ' 組真實計數。');
-    set('pplNote', '驗證集困惑度 ' + (+m.mlp_val_ppl).toFixed(1) + ' 高於訓練集 ' +
-      (+m.mlp_train_ppl).toFixed(1) + '，說明模型對沒背過的組合仍不擅長預測。');
+    var m = DATA.meta || {};
     var qwen = m.emb_source === 'qwen2.5-7b';
     set('embSrc', qwen ? 'Qwen2.5-7B' : '本模型自訓向量');
-    set('embDim', qwen ? 3584 : EMB);
+    set('embDim', qwen ? 3584 : 32);
     var matchTxt = '';
     if (qwen && m.qwen_matched) {
-        matchTxt = m.qwen_matched + ' 字直接對應';
-        if (m.qwen_borrowed) matchTxt += ' · ' + m.qwen_borrowed + ' 字借用最近鄰';
+      matchTxt = m.qwen_matched + ' 字直接對應';
+      if (m.qwen_borrowed) matchTxt += ' · ' + m.qwen_borrowed + ' 字借用最近鄰';
     }
     set('embMatch', matchTxt);
-    var loss = DATA.loss || [];
-    if (loss.length) {
-      set('lossCap', 'cross-entropy · ' + loss.length + ' epochs');
-      set('lossNote', '損失由 ' + loss[0].toFixed(3) + ' 降到 ' + loss[loss.length - 1].toFixed(3) +
-        '，對應訓練困惑度約 ' + (+m.mlp_train_ppl).toFixed(1) + '。');
-    }
   })();
 
-  /* ---------- int8 反量化 ---------- */
-  function deq(o) {
-    var bin = atob(o.data), n = bin.length;
-    var u8 = new Uint8Array(n);
-    for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i) & 255;
-    var i8 = new Int8Array(u8.buffer, 0, n);
-    var out = new Float32Array(n);
-    for (var i = 0; i < n; i++) out[i] = i8[i] * o.scale;
-    return out;
+  /* ---------- 開機閘門 ---------- */
+  var boot = el('boot'), bootStatus = el('bootStatus'), bootEnter = el('bootEnter');
+
+  function refreshStats() {
+    set('statBe', state.be === 'ollama' ? 'Ollama' : 'WebGPU');
+    set('statModel', activeTag());
+    set('statEmb', 'Qwen 嵌入');
+    var m = DATA.meta || {};
+    set('statSent', m.sentences ? m.sentences + ' 句' : '—');
+    set('topNote', (state.be === 'ollama' ? 'ollama' : 'webgpu') + ' / ' + activeTag());
   }
 
-  var EW = deq(DATA.mlp.emb), W1 = deq(DATA.mlp.fc1w), B1 = deq(DATA.mlp.fc1b),
-      W2 = deq(DATA.mlp.fc2w), B2 = deq(DATA.mlp.fc2b);
+  function setBe(be) {
+    state.be = be;
+    el('beSeg').querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-be') === be ? 'true' : 'false');
+    });
+    refreshStats();
+  }
 
-  /* ---------- MLP 前向（回傳 586 維 logits） ---------- */
-  var hin = new Float32Array(IN), hh = new Float32Array(HID), logits = new Float32Array(V);
+  function setSize(size) {
+    state.size = size;
+    ['bootSizeSeg', 'heroSeg'].forEach(function (id) {
+      var box = el(id);
+      if (!box) return;
+      box.querySelectorAll('button').forEach(function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-model') === size ? 'true' : 'false');
+      });
+    });
+    refreshStats();
+  }
 
-  function mlpForward(ids) {
-    var k, j, h, v;
-    for (k = 0; k < CTX; k++) {
-      var base = ids[k] * EMB;
-      for (j = 0; j < EMB; j++) hin[k * EMB + j] = EW[base + j];
+  el('beSeg').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (b) setBe(b.getAttribute('data-be'));
+  });
+  ['bootSizeSeg', 'heroSeg'].forEach(function (id) {
+    el(id).addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      if (b) setSize(b.getAttribute('data-model'));
+    });
+  });
+
+  function reopenBoot(msg) {
+    if (msg) {
+      bootStatus.classList.add('err');
+      bootStatus.textContent = msg;
     }
-    for (h = 0; h < HID; h++) {
-      var s = B1[h], row = h * IN;
-      for (j = 0; j < IN; j++) s += W1[row + j] * hin[j];
-      hh[h] = Math.tanh(s);
+    state.ready = false;
+    boot.classList.remove('hide');
+  }
+
+  /* Ollama 連線檢查：服務可達，且選定模型已安裝 */
+  function checkOllama() {
+    var tag = OLLAMA_TAGS[state.size];
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+    return fetch('http://localhost:11434/api/tags', { signal: ctrl.signal })
+      .catch(function () {
+        throw new Error('連不上 Ollama（localhost:11434）。請確認服務已啟動；若從 file:// 或外部網址開檔被 CORS 擋下，請用本機伺服器以 http://localhost 開啟，或設定 OLLAMA_ORIGINS=* 後重啟。');
+      })
+      .then(function (resp) {
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error('Ollama 回應錯誤 ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        var names = (data.models || []).map(function (m) { return m.name; });
+        var hit = names.some(function (n) { return n === tag || n.indexOf(tag) === 0; });
+        if (!hit) throw new Error('模型 ' + tag + ' 未安裝，請先執行：ollama pull ' + tag);
+      });
+  }
+
+  /* WebLLM 引擎：動態載入 WebGPU 推論，依尺寸快取 */
+  function ensureWebEngine() {
+    if (!('gpu' in navigator)) {
+      return Promise.reject(new Error('此瀏覽器不支援 WebGPU（需 Chrome／Edge 113+），無法使用 Web 後端。'));
     }
-    for (v = 0; v < V; v++) {
-      var a = B2[v], r2 = v * HID;
-      for (h = 0; h < HID; h++) a += W2[r2 + h] * hh[h];
-      logits[v] = a;
-    }
-    return logits;
+    var model = WL_MODELS[state.size];
+    if (state.wlEngine && state.wlKey === model) return Promise.resolve();
+    bootStatus.textContent = '載入 WebLLM 引擎…';
+    return import(WL_CDN)
+      .then(function (mod) {
+        bootStatus.textContent = '下載 Qwen 模型（首次約數百 MB，之後由瀏覽器快取）…';
+        return mod.CreateMLCEngine(model, {
+          initProgressCallback: function (p) { if (p && p.text) bootStatus.textContent = p.text; }
+        });
+      })
+      .then(function (engine) {
+        state.wlEngine = engine;
+        state.wlKey = model;
+      });
   }
 
-  /* ---------- n-gram 查表 ---------- */
-  var NG_K = 0.1;
-  var uni = new Float32Array(V);
-  var uk = DATA.ngram.unigram;
-  for (var ukey in uk) uni[+ukey] = uk[ukey];
-  var uniTot = DATA.ngram.total_uni;
-  var p1 = new Float32Array(V);
-  for (var v1 = 0; v1 < V; v1++) p1[v1] = (uni[v1] + NG_K) / (uniTot + NG_K * V);
-
-  var BIG = {};
-  function prep(table, dst) {
-    for (var key in table) {
-      var arr = table[key], tot = 0, i;
-      for (i = 0; i < arr.length; i++) tot += arr[i][1];
-      var den = tot + NG_K * V, probs = new Float32Array(arr.length);
-      for (i = 0; i < arr.length; i++) probs[i] = (arr[i][1] + NG_K) / den;
-      dst[key] = { ids: arr, p: probs };
-    }
-  }
-  prep(DATA.ngram.bigram, BIG);
-
-  var ngp = new Float32Array(V);
-  function ngForward(hist) {
-    var L = hist.length, a = hist[L - 1];
-    var e2 = BIG[String(a)], i, v;
-    for (v = 0; v < V; v++) ngp[v] = 0.2 * p1[v];
-    if (e2) { for (i = 0; i < e2.ids.length; i++) ngp[e2.ids[i][0]] += 0.8 * e2.p[i]; }
-    else { for (v = 0; v < V; v++) ngp[v] += 0.8 * p1[v]; }
-    return ngp;
+  function bootConnect() {
+    bootEnter.disabled = true;
+    bootEnter.textContent = '連線中…';
+    bootStatus.classList.remove('err');
+    bootStatus.textContent = '連線中…';
+    var pending = state.be === 'ollama' ? checkOllama() : ensureWebEngine();
+    job.then(function () {
+      state.ready = true;
+      boot.classList.add('hide');
+      refreshStats();
+    }).catch(function (err) {
+      bootStatus.classList.add('err');
+      bootStatus.textContent = (err && err.message) ? err.message : '連線失敗';
+    }).finally(function () {
+      bootEnter.disabled = false;
+      bootEnter.textContent = '進入';
+    });
   }
 
-  /* ---------- 溫度 + 取樣 ---------- */
-  var probBuf = new Float32Array(V), idxarr = [];
-
-  function softmaxT(src, temp, isLogit) {
-    var mx = -Infinity, v, s;
-    for (v = 0; v < V; v++) {
-      s = isLogit ? src[v] / temp
-                  : (src[v] > 0 ? Math.log(src[v]) / temp : -Infinity);
-      probBuf[v] = s;
-      if (s > mx) mx = s;
-    }
-    if (!isFinite(mx)) mx = 0;
-    var sum = 0, e;
-    for (v = 0; v < V; v++) { e = Math.exp(probBuf[v] - mx); probBuf[v] = e; sum += e; }
-    for (v = 0; v < V; v++) probBuf[v] /= sum;
-    return probBuf;
-  }
-
-  function applyTopK(p, topk) {
-    if (topk >= V) return p;
-    idxarr.length = 0;
-    var v;
-    for (v = 0; v < V; v++) idxarr.push(v);
-    idxarr.sort(function (x, y) { return p[y] - p[x]; });
-    var kth = p[idxarr[Math.min(topk, V) - 1]], sum = 0;
-    for (v = 0; v < V; v++) { if (p[v] < kth) { p[v] = 0; } sum += p[v]; }
-    if (sum > 0) for (v = 0; v < V; v++) p[v] /= sum;
-    return p;
-  }
-
-  function sampleP(p) {
-    var r = Math.random(), acc = 0, v;
-    for (v = 0; v < V; v++) {
-      if (p[v] === 0) continue;
-      acc += p[v];
-      if (r < acc) return v;
-    }
-    return V - 1;
-  }
-
-  function topList(p, n) {
-    var arr = [], v;
-    for (v = 0; v < V; v++) arr.push([v, p[v]]);
-    arr.sort(function (x, y) { return y[1] - x[1]; });
-    return arr.slice(0, n);
-  }
-
-  function enc(text) {
-    var out = [], chars = Array.from(text), i, id;
-    for (i = 0; i < chars.length; i++) {
-      id = STOI[chars[i]];
-      out.push(id === undefined ? UNK : id);
-    }
-    return out;
-  }
-
-  function padHist() {
-    var h = [], i;
-    for (i = 0; i < CTX; i++) h.push(SOS);
-    return h;
-  }
-
-  function lastCtx(hist) {
-    var out = [], L = hist.length, i;
-    for (i = CTX; i > 0; i--) out.push(hist[L - i]);
-    return out;
-  }
-
-  function distOf(model, hist, temp) {
-    return model === 'mlp'
-      ? softmaxT(mlpForward(lastCtx(hist)), temp, true)
-      : softmaxT(ngForward(hist), temp, false);
-  }
-
-  /* ---------- 首屏字盤 ---------- */
-  var band = el('band'), cells = band.children, traceAlts = el('traceAlts');
-  var heroHist = null, heroPos = 0, heroTimer = null, heroLive = true;
-
-  function clearBand() {
-    for (var i = 0; i < cells.length; i++) {
-      var g = cells[i].querySelector('.gl');
-      var p = cells[i].querySelector('.pos');
-      if (g) g.textContent = '·';
-      if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span>';
-      cells[i].classList.remove('filled', 'pop');
-      cells[i].classList.add('empty');
-    }
-  }
-  function paintCell(i, ch) {
-    if (i >= cells.length) return;
-    var c = cells[i], g = c.querySelector('.gl'), p = c.querySelector('.pos');
-    if (g) { g.textContent = ch; } else { c.textContent = ch; }
-    if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span><span class="pc">' + coordText(ch) + '</span>';
-    c.classList.remove('empty');
-    c.classList.add('filled', 'pop');
-    setTimeout(function () { c.classList.remove('pop'); }, 320);
-  }
-  function labelOf(id) {
-    if (id === EOS) return '終';
-    if (id === UNK) return '?';
-    return ITOS[id];
-  }
-  function showAlts(p) {
-    var top = topList(p, 3), parts = [];
-    for (var i = 0; i < top.length; i++) {
-      parts.push('<span>' + esc(labelOf(top[i][0])) + '<i>' + Math.round(top[i][1] * 100) + '%</i></span>');
-    }
-    traceAlts.innerHTML = parts.join('');
-  }
-
-  function heroStep() {
-    heroTimer = null;
-    if (!heroLive || slowMotion) return;
-    if (!heroHist) {
-      heroHist = padHist().concat(enc('今'));
-      clearBand();
-      paintCell(0, '今');
-      heroPos = 1;
-    }
-    var p = distOf('mlp', heroHist, 0.6);
-    applyTopK(p, 3);
-    var b = sampleP(p);
-    showAlts(p);
-    if (b === EOS || heroPos >= cells.length) {
-      heroHist = null;
-      traceAlts.textContent = '換一句…';
-      heroTimer = setTimeout(heroStep, 1400);
-      return;
-    }
-    heroHist.push(b);
-    paintCell(heroPos, ITOS[b]);
-    heroPos++;
-    heroTimer = setTimeout(heroStep, 620);
-  }
-
-  function resumeHero(delay) {
-    if (slowMotion || !heroLive || heroTimer) return;
-    heroTimer = setTimeout(heroStep, delay || 200);
-  }
-
-  var slowMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (slowMotion) {
-    ['今', '天', '天', '氣', '很', '好'].forEach(function (c, i) { paintCell(i, c); });
-    traceAlts.textContent = '示意畫面（已依系統設定關閉自動播放）';
-  }
-
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      heroLive = entries[0].isIntersecting;
-      if (heroLive) resumeHero(200);
-    }, { threshold: 0.12 }).observe(band);
-  } else {
-    resumeHero(400);
-  }
+  bootEnter.addEventListener('click', bootConnect);
+  el('switchBe').addEventListener('click', function () { reopenBoot('重新選擇後端或尺寸。'); });
 
   /* ---------- 操作台 ---------- */
   var genBtn = el('gen'), tempEl = el('temp'), topkEl = el('topk'),
       genOut = el('genOut'), ctxline = el('ctxline'), probList = el('probList'),
       pplOut = el('pplOut');
-  var curModel = '3', job = null;
+  var job = null;
 
-  /* 本機 Ollama 服務。三顆數字按鈕對應 Qwen2.5 不同尺寸；
-     模型需先用 `ollama pull` 下載到本機，頁面只負責呼叫 localhost:11434。 */
-  var OLLAMA_URL = 'http://localhost:11434/api/chat';
-  var OLLAMA_MODELS = {
-    '0.5': 'qwen2.5:0.5b',
-    '3': 'qwen2.5:3b',
-    '7': 'qwen2.5:7b'
-  };
-
-  function selectSeg(model) {
-    var kids = el('modelSeg').querySelectorAll('button');
-    for (var i = 0; i < kids.length; i++) {
-      kids[i].setAttribute('aria-pressed', kids[i].getAttribute('data-model') === model ? 'true' : 'false');
-    }
-    curModel = model;
-    probList.innerHTML = '<div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div>';
-    pplOut.textContent = '—';
-  }
-
-  el('modelSeg').addEventListener('click', function (e) {
-    var b = e.target.closest ? e.target.closest('button') : null;
-    if (!b) return;
-    selectSeg(b.getAttribute('data-model'));
-  });
+  tempEl.addEventListener('input', function () { el('tempVal').textContent = (+this.value).toFixed(2); });
+  topkEl.addEventListener('input', function () { el('topkVal').textContent = this.value; });
 
   el('chips').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.chip') : null;
@@ -321,9 +184,6 @@
     el('prompt').value = b.textContent;
     startJob();
   });
-
-  tempEl.addEventListener('input', function () { el('tempVal').textContent = (+this.value).toFixed(2); });
-  topkEl.addEventListener('input', function () { el('topkVal').textContent = this.value; });
 
   genBtn.addEventListener('click', function () {
     if (job) {
@@ -333,18 +193,6 @@
     }
     startJob();
   });
-
-  function renderDist(p, chosen) {
-    var top = topList(p, 8), html = '', max = top[0][1] || 1, i;
-    for (i = 0; i < top.length; i++) {
-      var id = top[i][0], w = (top[i][1] / max) * 100, isC = id === chosen;
-      html += '<div class="prow"><div class="ch"' + (isC ? ' style="color:var(--cin)"' : '') + '>' +
-        esc(labelOf(id)) + '</div><div class="track"><div class="fill" style="width:' + w.toFixed(1) + '%' +
-        (isC ? '' : ';background:#6B6558') + '"></div></div><div class="pc">' +
-        (top[i][1] * 100).toFixed(1) + '%</div></div>';
-    }
-    probList.innerHTML = html;
-  }
 
   function renderOut(chars, streaming) {
     var html = '', i, n = chars.length;
@@ -421,88 +269,49 @@
     });
   }
 
-  function startJob() {
-    if (job) job.stop = true;
-    var model = curModel;
-    var prompt = (el('prompt').value || '').trim() || '今天';
-    var chars = Array.from(prompt);
-    var hist = padHist().concat(enc(prompt));
-    var temp = +tempEl.value, topk = +topkEl.value;
-    if (OLLAMA_MODELS[model]) { ollamaJob(model, prompt, chars, temp, topk); return; }
-    var cap = chars.length + 26;
-    var my = { stop: false, logp: 0, n: 0 };
-    job = my;
-
-    genBtn.textContent = '停止';
-    genBtn.classList.add('pause');
-    renderOut(chars, true);
-    renderTraj(chars);
-    ctxline.textContent = '上下文：' + (chars.slice(-CTX).join('') || '—');
-    pplOut.textContent = '計算中…';
-    probList.innerHTML = '';
-
-    function finish() {
-      my.stop = true;
-      if (job !== my) return;
-      job = null;
-      genBtn.textContent = '生成';
-      genBtn.classList.remove('pause');
-      if (!my.done) {
-        renderOut(chars, false);
-        renderTraj(chars);
-        my.done = true;
-      }
-      if (my.n > 0) {
-        pplOut.textContent = '本次生成困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
-      }
-    }
-
-    function tick() {
-      if (my.stop) { finish(); return; }
-      if (chars.length >= cap) { finish(); return; }
-      var p = distOf(model, hist, temp);
-      applyTopK(p, topk);
-      var chosen = sampleP(p);
-      if (chosen === EOS) { renderDist(p, chosen); finish(); return; }
-      renderDist(p, chosen);
-      hist.push(chosen);
-      chars.push(ITOS[chosen]);
-      my.logp += Math.log(Math.max(p[chosen], 1e-12));
-      my.n += 1;
-      pplOut.textContent = '本次生成困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
-      ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
-      renderOut(chars, true);
-      renderTraj(chars);
-      setTimeout(tick, 62);
-    }
-    setTimeout(tick, 90);
-  }
-
-  /* ---------- 本機 Ollama Qwen2.5（0.5 / 3 / 7） ---------- */
-  function ollamaJob(size, prompt, chars, temp, topk) {
-    var tag = OLLAMA_MODELS[size];
-    var cap = chars.length + 120;
-    var my = { stop: false, done: false, controller: new AbortController() };
-    job = my;
+  function beginJob(chars) {
     genBtn.textContent = '停止';
     genBtn.classList.add('pause');
     renderOut(chars, true);
     renderTraj(chars);
     ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
-    probList.innerHTML = '<div class="prow"><div class="ch">' + esc(tag) +
-      '</div><div class="track"></div><div class="pc">本機 Ollama</div></div>';
+  }
 
-    function finish() {
-      my.stop = true;
-      if (job !== my) return;
-      job = null;
-      genBtn.textContent = '生成';
-      genBtn.classList.remove('pause');
-      if (!my.done) { renderOut(chars, false); renderTraj(chars); my.done = true; }
+  function finishJob(my) {
+    my.stop = true;
+    if (job !== my) return;
+    job = null;
+    genBtn.textContent = '生成';
+    genBtn.classList.remove('pause');
+    if (!my.done) { renderOut(my.chars, false); renderTraj(my.chars); my.done = true; }
+  }
+
+  function startJob() {
+    if (!state.ready) { reopenBoot('請先連線 Qwen 後再生成。'); return; }
+    if (job) {
+      job.stop = true;
+      if (job.controller) job.controller.abort();
+      return;
     }
-    function fail(reason) { finish(); pplOut.textContent = reason; }
+    var prompt = (el('prompt').value || '').trim() || '今天';
+    var chars = Array.from(prompt);
+    var temp = +tempEl.value, topk = +topkEl.value;
+    if (state.be === 'ollama') ollamaJob(prompt, chars, temp, topk);
+    else webJob(prompt, chars, temp, topk);
+  }
 
+  /* ---------- Ollama 串流生成 ---------- */
+  function ollamaJob(prompt, chars, temp, topk) {
+    var tag = OLLAMA_TAGS[state.size];
+    var cap = chars.length + 120;
+    var my = { stop: false, done: false, controller: new AbortController(), chars: chars };
+    job = my;
+    beginJob(chars);
+    probList.innerHTML = '<div class="probtag"><span class="ch">' + esc(tag) +
+      '</span><span class="pc">本機 Ollama</span></div>';
     pplOut.textContent = '連線 Ollama 中…';
+
+    function fail(reason) { finishJob(my); pplOut.textContent = reason; }
 
     (async function () {
       var resp;
@@ -514,7 +323,7 @@
           body: JSON.stringify({
             model: tag,
             messages: [
-              { role: 'system', content: '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。' },
+              { role: 'system', content: SYS },
               { role: 'user', content: prompt }
             ],
             stream: true,
@@ -523,7 +332,7 @@
         });
       } catch (err) {
         if (my.stop) return;
-        fail('連不上 Ollama（' + OLLAMA_URL + '）。請確認 Ollama 已啟動；若從 file:// 或外部網址開檔被 CORS 擋下，請用本機伺服器以 http://localhost 開啟頁面，或設定 OLLAMA_ORIGINS=* 後重啟 Ollama。');
+        fail('連不上 Ollama：' + (err && err.message ? err.message : '未知錯誤'));
         return;
       }
 
@@ -568,138 +377,63 @@
           }
           if (my.stop) { reader.cancel(); break; }
         }
-        finish();
+        finishJob(my);
       } catch (err) {
-        if (my.stop) { finish(); return; }
+        if (my.stop) { finishJob(my); return; }
         fail('生成中斷：' + (err && err.message ? err.message : '未知錯誤'));
       }
     })();
   }
 
-  /* ---------- 兩引擎對比 ---------- */
-  var vRun = el('vRun');
-  vRun.addEventListener('click', function () {
-    var prompt = (el('prompt').value || '').trim() || '今天';
-    var temp = +tempEl.value, topk = +topkEl.value;
-    var base = padHist().concat(enc(prompt));
-    var target = 22;
+  /* ---------- WebLLM 串流生成 ---------- */
+  function webJob(prompt, chars, temp, topk) {
+    var cap = chars.length + 120;
+    var my = { stop: false, done: false, controller: null, chars: chars };
+    job = my;
+    beginJob(chars);
+    probList.innerHTML = '<div class="probtag"><span class="ch">Qwen</span><span class="pc">瀏覽器 WebGPU</span></div>';
+    pplOut.textContent = '準備 Web 引擎…';
 
-    function runOne(kind) {
-      var hist = base.slice(), chars = Array.from(prompt), logp = 0, n = 0, c, p;
-      while (chars.length < prompt.length + target) {
-        p = distOf(kind, hist, temp);
-        applyTopK(p, topk);
-        c = sampleP(p);
-        if (c === EOS) break;
-        hist.push(c);
-        chars.push(ITOS[c]);
-        logp += Math.log(Math.max(p[c], 1e-12));
-        n++;
+    function fail(reason) { finishJob(my); pplOut.textContent = reason; }
+
+    (async function () {
+      try {
+        await ensureWebEngine();
+        pplOut.textContent = 'Qwen 生成中…';
+        var stream = await state.wlEngine.chat.completions.create({
+          messages: [
+            { role: 'system', content: SYS },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          temperature: temp,
+          top_k: topk,
+          max_tokens: 120
+        });
+        for await (var chunk of stream) {
+          if (my.stop) break;
+          var delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta)
+            ? chunk.choices[0].delta.content : '';
+          if (delta) {
+            Array.from(delta).forEach(function (ch) {
+              if (chars.length < cap) chars.push(ch);
+            });
+            renderOut(chars, true);
+            renderTraj(chars);
+            ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+          }
+        }
+        finishJob(my);
+      } catch (err) {
+        fail('Qwen 載入或推論失敗：' + (err && err.message ? err.message : '未知錯誤'));
       }
-      el(kind === 'mlp' ? 'vMlp' : 'vNg').textContent = chars.join('');
-      el(kind === 'mlp' ? 'vMlpMeta' : 'vNgMeta').textContent =
-        (kind === 'mlp' ? 'MLP' : 'n-gram') + '　共 ' + n + ' 字　生成困惑度 ' +
-        Math.exp(-logp / Math.max(n, 1)).toFixed(1);
-    }
+    })();
+  }
 
-    vRun.textContent = '生成中…';
-    el('vMlp').textContent = '…';
-    el('vNg').textContent = '…';
-    el('vMlpMeta').textContent = '—';
-    el('vNgMeta').textContent = '—';
-    setTimeout(function () {
-      runOne('mlp');
-      runOne('ngram');
-      vRun.textContent = '兩邊同時生成';
-    }, 80);
-  });
-
-
-  /* ---------- 位置實驗表 ---------- */
-  (function renderProbe() {
-    var rows = (DATA.meta.probe || []), html = '', i, j;
-    for (i = 0; i < rows.length; i++) {
-      html += '<div class="row"><span>' + esc(rows[i].ctx) + '</span>';
-      for (j = 0; j < 3; j++) {
-        var it = rows[i].top[j] || ['—', 0];
-        html += '<span><b>' + esc(it[0]) + '</b><em>' + Number(it[1]).toFixed(1) + '%</em></span>';
-      }
-      html += '</div>';
-    }
-    var box = document.getElementById('probeRows');
-    if (box) box.innerHTML = html;
-  })();
-
-  /* ---------- 對話模式 ---------- */
+  /* ---------- 對話模式（Qwen） ---------- */
   var chatLog = el('chatlog'), chatIn = el('chatIn'), chatSend = el('chatSend'),
       chatNote = el('chatNote');
   var chatBusy = false;
-
-  function stripLead(t) {
-    return String(t).replace(/^[—－\-，,、。；;：:\s]+/, '');
-  }
-
-  var DLG = DATA.meta.dialogs || [], DLGG = [];
-  (function prepDialog() {
-    for (var i = 0; i < DLG.length; i++) DLGG.push({ q: DLG[i][0], a: DLG[i][1], g: grams(DLG[i][0]) });
-  })();
-
-  function grams(str) {
-    var a = Array.from(str), out = {}, i;
-    for (i = 0; i < a.length - 1; i++) out[a[i] + a[i + 1]] = 1;
-    return out;
-  }
-
-  function dice(a, b) {
-    var hit = 0, k, na = 0, nb = 0;
-    for (k in a) { na++; if (k in b) hit++; }
-    for (k in b) nb++;
-    return (na + nb) ? (2 * hit) / (na + nb) : 0;
-  }
-
-  function nearest(text) {
-    var g = grams(text), best = null, i, sc;
-    for (i = 0; i < DLGG.length; i++) {
-      sc = dice(g, DLGG[i].g);
-      if (!best || sc > best.score) best = { score: sc, q: DLGG[i].q, a: DLGG[i].a };
-    }
-    return best;
-  }
-
-  function continueFrom(promptText, temp, topk, trials) {
-    var promptChars = Array.from(promptText), best = null, s, t;
-    for (s = 0; s < trials; s++) {
-      var hist = padHist().concat(enc(promptText));
-      var chars = promptChars.slice(), logp = 0, n = 0, out = '';
-      for (t = 0; t < 20; t++) {
-        var p = distOf('mlp', hist, temp);
-        applyTopK(p, topk);
-        var c = sampleP(p);
-        if (c === EOS) break;
-        hist.push(c);
-        chars.push(ITOS[c]);
-        logp += Math.log(Math.max(p[c], 1e-12));
-        n++;
-        out += ITOS[c];
-        if (n >= 2 && /[。？！]/.test(out.charAt(out.length - 1))) break;
-      }
-      var score = logp / Math.max(n, 1);
-      if (n > 0 && (!best || score > best.score)) best = { text: out, score: score, n: n };
-    }
-    return best;
-  }
-
-  function genReply(text) {
-    var n = nearest(text);
-    if (n && n.score >= 0.3) {
-      return { text: n.a, note: '取自語料「' + n.q + '」，相似度 ' + n.score.toFixed(2) };
-    }
-    var r = continueFrom(text + (/([。？！?!.])$/.test(text) ? '' : '。') + '—', 0.45, 2, 3);
-    return {
-      text: r ? stripLead(r.text) : '',
-      note: '沒有相近的問法，改成讓模型直接接話（所以容易接得怪）'
-    };
-  }
 
   function addMsg(text, who, meta) {
     var d = document.createElement('div');
@@ -715,8 +449,53 @@
     return d;
   }
 
+  function ollamaChat(text) {
+    var tag = OLLAMA_TAGS[state.size];
+    return fetch(OLLAMA_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: tag,
+        messages: [
+          { role: 'system', content: SYS },
+          { role: 'user', content: text }
+        ],
+        stream: false,
+        options: { temperature: 0.55, top_k: 3, num_predict: 120 }
+      })
+    }).then(function (resp) {
+      if (!resp.ok) {
+        return resp.text().then(function (b) {
+          throw new Error('Ollama ' + resp.status + (b ? '：' + b.slice(0, 100) : ''));
+        });
+      }
+      return resp.json();
+    }).then(function (d) {
+      return d.message && d.message.content ? d.message.content.trim() : '';
+    });
+  }
+
+  function webChat(text) {
+    return ensureWebEngine().then(function () {
+      return state.wlEngine.chat.completions.create({
+        messages: [
+          { role: 'system', content: SYS },
+          { role: 'user', content: text }
+        ],
+        stream: false,
+        temperature: 0.55,
+        top_k: 3,
+        max_tokens: 120
+      });
+    }).then(function (r) {
+      var c = r.choices && r.choices[0] && r.choices[0].message ? r.choices[0].message.content : '';
+      return (c || '').trim();
+    });
+  }
+
   function sendChat() {
     if (chatBusy) return;
+    if (!state.ready) { reopenBoot('請先連線 Qwen 再對話。'); return; }
     var text = (chatIn.value || '').trim();
     if (!text) return;
     chatIn.value = '';
@@ -726,19 +505,21 @@
     chatSend.textContent = '寫…';
     var pending = addMsg('…', 'bot wait');
 
-    setTimeout(function () {
-      var r = genReply(text);
+    var reply = state.be === 'ollama' ? ollamaChat(text) : webChat(text);
+    reply.then(function (out) {
       chatLog.removeChild(pending);
-      if (!r || !r.text) {
-        addMsg('（接不下去了，換個說法試試。）', 'bot');
-      } else {
-        addMsg(r.text, 'bot', r.note);
-      }
-      chatNote.textContent = '回覆取自語料裡最接近的那組問答；沒有相近問法時才讓模型自己接話。';
+      if (!out) addMsg('（接不下去了，換個說法試試。）', 'bot');
+      else addMsg(out, 'bot', activeTag());
+      chatNote.textContent = '回答由 ' + (state.be === 'ollama' ? '本機 Ollama' : '瀏覽器 WebGPU') +
+        ' 上的 ' + activeTag() + ' 產生。';
+    }).catch(function (err) {
+      chatLog.removeChild(pending);
+      addMsg('（連線失敗：' + (err && err.message ? err.message : '未知錯誤') + '）', 'bot');
+    }).finally(function () {
       chatBusy = false;
       chatSend.disabled = false;
       chatSend.textContent = '送出';
-    }, 30);
+    });
   }
 
   chatSend.addEventListener('click', sendChat);
@@ -752,177 +533,99 @@
     sendChat();
   });
 
-  /* ---------- 圖表 ---------- */
-  function drawCharts() {
-    if (typeof echarts === 'undefined') {
-      el('chartLoss').innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">損失 ' + DATA.loss[0].toFixed(2) + ' → ' + DATA.loss[DATA.loss.length - 1].toFixed(2) + '（' + DATA.loss.length + ' 輪）。</p>';
-      el('chartPpl').innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">2-gram ' + DATA.meta.ngram_bigram_ppl + '　3-gram ' + DATA.meta.ngram_trigram_ppl + '<br>MLP 訓練 ' + DATA.meta.mlp_train_ppl + '　MLP 驗證 ' + DATA.meta.mlp_val_ppl + '</p>';
-      return;
-    }
-    var axisText = { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' };
-    var tip = {
-      trigger: 'axis',
-      backgroundColor: '#1C1D15',
-      borderColor: 'rgba(231,225,210,.2)',
-      textStyle: { color: '#E7E1D2', fontSize: 11 }
-    };
+  /* ---------- 字元座標圖 ---------- */
+  var EMB_STYLE = {
+    zh:    { color: '#E7E1D2', label: '中文字' },
+    en:    { color: '#84A196', label: '英文字母' },
+    digit: { color: '#C0452E', label: '數字' },
+    punct: { color: '#8D887A', label: '標點' },
+    space: { color: '#5E5A50', label: '空格' },
+    sp:    { color: '#5E5A50', label: '特殊符號' }
+  };
+  var embChart = null;
 
-    var loss = echarts.init(el('chartLoss'));
-    loss.setOption({
-      backgroundColor: 'transparent',
-      grid: { left: 36, right: 12, top: 18, bottom: 26 },
-      tooltip: tip,
-      xAxis: {
-        type: 'category',
-        data: DATA.loss.map(function (_, i) { return i + 1; }),
-        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-        axisTick: { show: false },
-        axisLabel: { color: '#8D887A', fontSize: 11, fontFamily: 'monospace', interval: 4 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: axisText,
-        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-      },
-      series: [{
-        type: 'line',
-        data: DATA.loss.map(function (x) { return +x.toFixed(4); }),
-        symbol: 'circle',
-        symbolSize: 3,
-        lineStyle: { color: '#C0452E', width: 1.6 },
-        itemStyle: { color: '#C0452E' },
-        areaStyle: { color: 'rgba(192,69,46,.10)' }
-      }]
+  function embSeries(filter) {
+    var byType = {}, hits = [];
+    (DATA.embmap || []).forEach(function (pt) {
+      var ch = pt[0], x = pt[1], y = pt[2], t = pt[3];
+      var hit = !!filter && ch.indexOf(filter) >= 0;
+      if (hit) { hits.push([x, y, ch]); }
+      else { (byType[t] = byType[t] || []).push([x, y, ch]); }
     });
-
-    var ppl = echarts.init(el('chartPpl'));
-    ppl.setOption({
-      backgroundColor: 'transparent',
-      grid: { left: 36, right: 12, top: 18, bottom: 26 },
-      tooltip: tip,
-      xAxis: {
-        type: 'category',
-        data: ['2-gram', '3-gram', 'MLP 訓練', 'MLP 驗證'],
-        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-        axisTick: { show: false },
-        axisLabel: { color: '#8D887A', fontSize: 11 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: axisText,
-        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-      },
-      series: [{
-        type: 'bar',
-        barWidth: '34%',
-        data: [+DATA.meta.ngram_bigram_ppl, +DATA.meta.ngram_trigram_ppl, +DATA.meta.mlp_train_ppl, +DATA.meta.mlp_val_ppl],
-        itemStyle: {
-          color: function (p) { return p.dataIndex === 3 ? '#C0452E' : '#84A196'; }
-        },
-        label: {
-          show: true, position: 'top', color: '#C9C2B2',
-          fontSize: 11, fontFamily: 'monospace',
-          formatter: function (p) { return Number(p.value).toFixed(1); }
-        }
-      }]
+    var series = Object.keys(EMB_STYLE).map(function (t) {
+      return {
+        name: EMB_STYLE[t].label, type: 'scatter', data: byType[t] || [],
+        symbolSize: 5, itemStyle: { color: EMB_STYLE[t].color, opacity: 0.62 }
+      };
     });
-
-    /* ---------- 字向量座標圖 ---------- */
-    var EMB_STYLE = {
-      zh:    { color: '#E7E1D2', label: '中文字' },
-      en:    { color: '#84A196', label: '英文字母' },
-      digit: { color: '#C0452E', label: '數字' },
-      punct: { color: '#8D887A', label: '標點' },
-      space: { color: '#5E5A50', label: '空格' },
-      sp:    { color: '#5E5A50', label: '特殊符號' }
-    };
-    var embChart = null;
-
-    function embSeries(filter) {
-      var byType = {}, hits = [];
-      (DATA.embmap || []).forEach(function (pt) {
-        var ch = pt[0], x = pt[1], y = pt[2], t = pt[3];
-        var hit = !!filter && ch.indexOf(filter) >= 0;
-        if (hit) { hits.push([x, y, ch]); }
-        else { (byType[t] = byType[t] || []).push([x, y, ch]); }
+    if (hits.length) {
+      series.push({
+        name: '命中', type: 'scatter', data: hits, symbolSize: 10, zlevel: 2,
+        itemStyle: { color: '#C0452E', opacity: 0.95 }
       });
-      var series = Object.keys(EMB_STYLE).map(function (t) {
-        return {
-          name: EMB_STYLE[t].label, type: 'scatter', data: byType[t] || [],
-          symbolSize: 5, itemStyle: { color: EMB_STYLE[t].color, opacity: 0.62 }
-        };
-      });
-      if (hits.length) {
-        series.push({
-          name: '命中', type: 'scatter', data: hits, symbolSize: 10, zlevel: 2,
-          itemStyle: { color: '#C0452E', opacity: 0.95 }
-        });
-      }
-      return series;
     }
-
-    function drawEmbMap() {
-      var box = el('embMap');
-      if (!box || !DATA.embmap) return;
-      if (typeof echarts === 'undefined') {
-        box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">字向量地圖需要 ECharts 連線載入；離線環境下可改看本機匯出的 模型.txt。</p>';
-        return;
-      }
-      embChart = echarts.init(box);
-      embChart.setOption({
-        backgroundColor: 'transparent',
-        grid: { left: 18, right: 18, top: 18, bottom: 28 },
-        tooltip: {
-          trigger: 'item',
-          backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
-          textStyle: { color: '#E7E1D2', fontSize: 11 },
-          formatter: function (p) {
-            return esc(p.data[2]) + '　(' + p.data[0].toFixed(2) + ', ' + p.data[1].toFixed(2) + ')';
-          }
-        },
-        xAxis: {
-          type: 'value', min: -1.05, max: 1.05,
-          axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-          axisTick: { show: false }, axisLabel: axisText,
-          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-        },
-        yAxis: {
-          type: 'value', min: -1.05, max: 1.05,
-          axisLine: { show: false }, axisTick: { show: false },
-          axisLabel: axisText,
-          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-        },
-        series: embSeries('')
-      });
-      embChart.on('click', function (p) {
-        var ch = p.data[2];
-        if (ch && ch[0] !== '<') {
-          el('prompt').value = ch;
-          el('console').scrollIntoView({ behavior: 'smooth' });
-        }
-      });
-      var lg = el('embLegend');
-      if (lg) {
-        lg.innerHTML = Object.keys(EMB_STYLE).map(function (t) {
-          return '<span><i style="background:' + EMB_STYLE[t].color + '"></i>' + EMB_STYLE[t].label + '</span>';
-        }).join('');
-      }
-      var search = el('embSearch');
-      if (search) {
-        search.addEventListener('input', function () {
-          if (embChart) embChart.setOption({ series: embSeries(this.value.trim()) });
-        });
-      }
-    }
-
-    drawEmbMap();
-    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); if (embChart) embChart.resize(); if (trajChart) trajChart.resize(); });
+    return series;
   }
 
-  if (document.readyState === 'complete') { drawCharts(); }
-  else { window.addEventListener('load', drawCharts); }
+  function drawEmbMap() {
+    var box = el('embMap');
+    if (!box || !DATA.embmap) return;
+    if (typeof echarts === 'undefined') {
+      box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">字向量地圖需要 ECharts 連線載入；離線環境下可改看本機匯出的 模型.txt。</p>';
+      return;
+    }
+    embChart = echarts.init(box);
+    var axisText = { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' };
+    embChart.setOption({
+      backgroundColor: 'transparent',
+      grid: { left: 18, right: 18, top: 18, bottom: 28 },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
+        textStyle: { color: '#E7E1D2', fontSize: 11 },
+        formatter: function (p) {
+          return esc(p.data[2]) + '　(' + p.data[0].toFixed(2) + ', ' + p.data[1].toFixed(2) + ')';
+        }
+      },
+      xAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
+        axisTick: { show: false }, axisLabel: axisText,
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      yAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: axisText,
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      series: embSeries('')
+    });
+    embChart.on('click', function (p) {
+      var ch = p.data[2];
+      if (ch && ch[0] !== '<') {
+        el('prompt').value = ch;
+        el('console').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+    var lg = el('embLegend');
+    if (lg) {
+      lg.innerHTML = Object.keys(EMB_STYLE).map(function (t) {
+        return '<span><i style="background:' + EMB_STYLE[t].color + '"></i>' + EMB_STYLE[t].label + '</span>';
+      }).join('');
+    }
+    var search = el('embSearch');
+    if (search) {
+      search.addEventListener('input', function () {
+        if (embChart) embChart.setOption({ series: embSeries(this.value.trim()) });
+      });
+    }
+  }
+
+  drawEmbMap();
+  refreshStats();
+  window.addEventListener('resize', function () {
+    if (embChart) embChart.resize();
+    if (trajChart) trajChart.resize();
+  });
 })();

@@ -50,6 +50,8 @@ body::before{
 .brand{font-family:var(--serif);font-size:20px;letter-spacing:.14em}
 .brand em{font-style:normal;color:var(--cin)}
 .topnote{font-family:var(--mono);font-size:11.5px;color:var(--mute);letter-spacing:.06em}
+.toplink{background:none;border:0;color:var(--cel);font-family:var(--mono);font-size:11.5px;cursor:pointer;letter-spacing:.06em}
+.toplink:hover{color:var(--paper)}
 
 /* ---------- 首屏 ---------- */
 .hero{padding:52px 0 44px;border-bottom:1px solid var(--line)}
@@ -107,17 +109,18 @@ h1 .tail{color:var(--cin)}
 .cell.pop{animation:stamin .3s ease-out both}
 
 .trace{
-  display:flex;align-items:baseline;gap:10px;
+  display:flex;align-items:center;gap:14px;
   margin-top:14px;
-  min-height:26px;
+  min-height:44px;
   font-size:13px;
   color:var(--mute);
   flex-wrap:wrap;
 }
 .trace .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:#6F695E}
-.trace .alts{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--serif);color:#C9C2B2}
+.trace .alts{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--serif);color:#C9C2B2;min-height:24px}
 .trace .alts span{font-size:15px}
 .trace .alts i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);margin-left:3px}
+.trace .seg{margin-left:auto}
 
 .stats{
   margin-top:34px;
@@ -187,14 +190,13 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
   cursor:pointer;
 }
 .chip:hover{border-color:var(--paper);color:var(--paper)}
-.chip:hover .mk{width:100%}
 
 .controls{display:flex;flex-wrap:wrap;gap:22px;align-items:center}
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{
   min-height:44px;
-  min-width:56px;
-  padding:0 20px;
+  min-width:52px;
+  padding:0 18px;
   background:transparent;
   border:0;
   color:var(--mute);
@@ -203,6 +205,7 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
   cursor:pointer;
   letter-spacing:0;
 }
+.seg button + button{border-left:1px solid var(--line)}
 .seg button[aria-pressed=true]{background:rgba(192,69,46,.16);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cin)}
 .slider{display:flex;flex-direction:column;gap:2px;min-width:132px;flex:1 1 132px}
 .slider label{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.06em;display:flex;justify-content:space-between}
@@ -237,69 +240,32 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 @keyframes blink{50%{opacity:0}}
 
 .probs{padding:18px 16px 22px}
-#probList{display:grid}
 .probs .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .probs .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
 .probs .head b{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--paper)}
+.probtag{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
+.probtag .ch{font-family:var(--serif);font-size:17px}
+.probtag .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
 .traj{padding:18px 16px 22px;border-top:1px solid var(--line)}
 .traj .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .traj .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
 #trajMap{height:260px}
-.prow{display:grid;grid-template-columns:34px 1fr 46px;align-items:center;gap:12px;padding:3px 0}
-.prow .ch{font-family:var(--serif);font-size:17px;text-align:center}
-.prow .track{height:10px;background:rgba(231,225,210,.06);position:relative}
-.prow .fill{position:absolute;left:0;top:0;height:100%;background:var(--cin);transition:width .22s ease}
-.prow:first-child .fill{background:var(--cin)}
-.prow .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute);text-align:right}
 
-/* ---------- 對照 ---------- */
-.versus{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.vcell{background:var(--ink);padding:22px 18px}
-.vcell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:baseline}
-.vcell h3 i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute);letter-spacing:.06em}
-.vout{
-  font-family:var(--serif);font-size:19px;line-height:1.7;margin-top:14px;
-  min-height:5.1em;color:#D9D2C2;word-break:break-all;
+/* ---------- 對話 ---------- */
+.chat{margin-top:28px;border:1px solid var(--line)}
+.chatlog{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px;max-height:340px;overflow:auto}
+.msg{
+  max-width:88%;padding:9px 12px;border:1px solid var(--line);
+  font-family:var(--serif);font-size:16px;line-height:1.6;word-break:break-all;
 }
-.vmeta{font-family:var(--mono);font-size:11px;color:var(--mute);margin-top:12px;letter-spacing:.04em}
-.vbtn{
-  margin-top:26px;min-height:44px;padding:0 22px;
-  border:1px solid var(--cel);background:transparent;color:var(--cel);
-  font-family:var(--sans);font-size:14px;letter-spacing:.08em;cursor:pointer;
-}
-.vbtn:hover{background:rgba(132,161,150,.12)}
+.msg.user{align-self:flex-end;border-color:rgba(192,69,46,.55);color:var(--paper)}
+.msg.bot{align-self:flex-start;color:#D9D2C2}
+.msg.bot.wait{color:#6F695E}
+.msg small{display:block;font-family:var(--mono);font-size:10px;color:#6F695E;margin-top:4px}
+.chatbar{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.chatnote{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.04em}
 
-/* ---------- 構造 ---------- */
-.inside{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.icell{background:var(--ink);padding:22px 18px}
-.icell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:4px}
-.icell p{font-size:13.5px;color:#B0A99A;margin-bottom:16px}
-.fig{display:flex;flex-direction:column;gap:0;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
-.mod{
-  border:1px solid var(--line);
-  padding:9px 12px;
-  display:flex;justify-content:space-between;gap:10px;
-  color:#C9C2B2;
-}
-.mod span{font-family:var(--sans);font-size:13px}
-.mod b{font-weight:400;color:var(--mute)}
-.arrow{align-self:center;color:#5E5A50;padding:3px 0;font-size:11px}
-.lookup{
-  border:1px solid var(--line);
-}
-.lookup .row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line2)}
-.lookup .row:last-child{border-bottom:0}
-.lookup .row span{padding:8px 10px;font-family:var(--serif);font-size:14px;border-right:1px solid var(--line2);text-align:center}
-.lookup .row span:last-child{border-right:0}
-.lookup .row span.hit{color:var(--cin)}
-
-/* ---------- 數據 ---------- */
-.data{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.dcell{background:var(--ink);padding:20px 18px}
-.dcell .cap{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
-.dcell .cap h3{font-family:var(--serif);font-size:15px;font-weight:600}
-.dcell .cap i{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--mute)}
-.chart{width:100%;height:190px}
+/* ---------- 座標 ---------- */
 .embedbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:18px 0 10px}
 .embedbar input{flex:0 1 200px;min-height:40px;font-size:16px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11.5px;color:var(--mute)}
@@ -307,6 +273,7 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 .legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
 #embMap{height:420px}
 .note{font-size:12.5px;color:#8D887A;line-height:1.65;margin-top:14px;border-left:1px solid var(--line);padding-left:12px}
+.chart{width:100%;height:190px}
 
 /* ---------- 界限 ---------- */
 .limits{margin-top:26px;border-top:1px solid var(--line)}
@@ -321,6 +288,32 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 
 footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--mono);letter-spacing:.04em;line-height:2}
 
+/* ---------- 開機閘門 ---------- */
+.boot{
+  position:fixed;inset:0;z-index:50;
+  background:var(--ink);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.boot.hide{display:none}
+.boot-card{
+  width:100%;max-width:430px;border:1px solid var(--line);
+  background:var(--ink2);padding:30px 26px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.boot-brand{font-family:var(--serif);font-size:24px;letter-spacing:.14em}
+.boot-brand em{font-style:normal;color:var(--cin)}
+.boot-sub{font-size:13.5px;color:#B9B2A2}
+.boot-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.boot-lbl{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em;width:44px}
+.boot-status{
+  min-height:20px;font-family:var(--mono);font-size:11.5px;color:#84A196;
+  letter-spacing:.04em;line-height:1.6;
+}
+.boot-status.err{color:var(--cin)}
+.boot-hint{font-size:11.5px;color:#6F695E;line-height:1.7}
+.boot-card .btn{width:100%}
+
 /* ---------- 桌面 ---------- */
 @media (min-width:768px){
   body{font-size:15.5px}
@@ -331,10 +324,6 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
   .bar{flex-direction:row;align-items:center;padding:16px 20px}
   .bar .promptrow{flex:1 1 auto}
   .controls{flex-wrap:nowrap}
-  #probList{grid-template-columns:1fr 1fr;column-gap:32px}
-  .versus{grid-template-columns:1fr 1fr}
-  .inside{grid-template-columns:1fr 1fr}
-  .data{grid-template-columns:1fr 1fr}
   .limit{grid-template-columns:180px 1fr;align-items:baseline}
   .limit p{grid-column:2}
   section{padding:74px 0}
@@ -351,51 +340,54 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 .tk b{font-weight:400;line-height:1.3}
 .tk.cur b{color:var(--cin)}
 
-.pos{margin-top:28px;display:grid;gap:1px;background:var(--line);border:1px solid var(--line)}
-.poscell{background:var(--ink);padding:22px 18px}
-.poscell h3{font-family:var(--serif);font-size:17px;font-weight:600;letter-spacing:.06em;margin-bottom:6px}
-.poscell p{font-size:13.5px;color:#B0A99A}
-.ptable{margin-top:16px;border:1px solid var(--line);overflow:hidden}
-.ptable .hrow{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line);
-  font-family:var(--mono);font-size:10.5px;color:var(--mute);letter-spacing:.06em}
-.ptable .row{display:grid;grid-template-columns:66px repeat(3,1fr);border-bottom:1px solid var(--line2)}
-.ptable .hrow span,.ptable .row span{padding:7px 8px;text-align:center;border-right:1px solid var(--line2);min-width:0}
-.ptable .hrow span:last-child,.ptable .row span:last-child{border-right:0}
-.ptable .row span:first-child{font-family:var(--serif);font-size:15px;color:var(--paper)}
-.ptable .row b{font-family:var(--serif);font-size:15px;font-weight:400;color:var(--cel)}
-.ptable .row em{font-family:var(--mono);font-style:normal;font-size:10.5px;color:var(--mute);margin-left:3px}
-
-.chat{margin-top:28px;border:1px solid var(--line)}
-.chatlog{padding:16px;display:flex;flex-direction:column;gap:10px;min-height:172px;max-height:340px;overflow:auto}
-.msg{
-  max-width:88%;padding:9px 12px;border:1px solid var(--line);
-  font-family:var(--serif);font-size:16px;line-height:1.6;word-break:break-all;
-}
-.msg.user{align-self:flex-end;border-color:rgba(192,69,46,.55);color:var(--paper)}
-.msg.bot{align-self:flex-start;color:#D9D2C2}
-.msg.bot.wait{color:#6F695E}
-.msg small{display:block;font-family:var(--mono);font-size:10px;color:#6F695E;margin-top:4px}
-.chatbar{border-top:1px solid var(--line);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
 @media (prefers-reduced-motion:reduce){
   .cell.pop{animation:none}
   .caret{animation:none}
-  .prow .fill{transition:none}
 }
 </style>
 </head>
 <body>
 
+<!-- ===== 開機閘門：先選後端與尺寸，連上 Qwen 再進入 ===== -->
+<div class="boot" id="boot">
+  <div class="boot-card">
+    <div class="boot-brand">活字盤 <em>/</em> Qwen</div>
+    <p class="boot-sub">選擇後端與模型尺寸，連上 Qwen 後再進入示範。</p>
+    <div class="boot-row">
+      <span class="boot-lbl">後端</span>
+      <div class="seg" id="beSeg">
+        <button data-be="ollama" aria-pressed="true">Ollama</button>
+        <button data-be="web" aria-pressed="false">Web</button>
+      </div>
+    </div>
+    <div class="boot-row">
+      <span class="boot-lbl">尺寸</span>
+      <div class="seg" id="bootSizeSeg">
+        <button data-model="0.5" aria-pressed="false">0.5</button>
+        <button data-model="3" aria-pressed="true">3</button>
+        <button data-model="7" aria-pressed="false">7</button>
+      </div>
+    </div>
+    <div class="boot-status" id="bootStatus">尚未連線。</div>
+    <button class="btn" id="bootEnter">進入</button>
+    <p class="boot-hint">Ollama：本機 localhost:11434，模型需先 ollama pull；Web：瀏覽器 WebGPU 下載權重並快取，7B 需較大顯示記憶體。</p>
+  </div>
+</div>
+
 <header class="top">
   <div class="wrap">
     <div class="brand">活字盤 <em>/</em> 下一個字</div>
-    <div class="topnote" id="topNote">char-level language model</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="topnote" id="topNote">char-level language model</div>
+      <button class="toplink" id="switchBe" type="button">切換後端</button>
+    </div>
   </div>
 </header>
 
 <section class="hero">
   <div class="wrap">
     <h1>下一個<span class="tail">字</span></h1>
-    <p class="lede">模型只做一件事：看著前面的幾個字，猜下一個字是什麼。它從 <span id="ledeCount">—</span> 裡學會這件事，現在在瀏覽器裡以 <b>int8 量化權重</b> 即時運行，每個字都是現場算出來的。</p>
+    <p class="lede">模型看著前面的文字，一個字一個字往下接。本頁示範由 <b>Qwen2.5</b> 產出回答；字盤上每個字上方標出它在 Qwen 參考嵌入空間的二維座標。</p>
 
     <!-- 首屏：即時生成的字盤帶 -->
     <div class="band" id="band" aria-label="模型即時生成的字盤">
@@ -416,14 +408,19 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     </div>
     <div class="trace" id="trace">
       <span class="lbl">NEXT</span>
-      <span class="alts" id="traceAlts">正在載入權重…</span>
+      <span class="alts" id="traceAlts">連線後顯示下一字…</span>
+      <div class="seg" id="heroSeg">
+        <button data-model="0.5" aria-pressed="false">0.5</button>
+        <button data-model="3" aria-pressed="true">3</button>
+        <button data-model="7" aria-pressed="false">7</button>
+      </div>
     </div>
 
     <div class="stats">
+      <div><div class="lbl">後端</div><div class="val" id="statBe">—</div></div>
+      <div><div class="lbl">模型</div><div class="val" id="statModel">—</div></div>
+      <div><div class="lbl">座標來源</div><div class="val" id="statEmb">—</div></div>
       <div><div class="lbl">語料</div><div class="val" id="statSent">—</div></div>
-      <div><div class="lbl">詞表</div><div class="val" id="statVocab">—</div></div>
-      <div><div class="lbl">MLP 驗證困惑度</div><div class="val" id="statPpl">—</div></div>
-      <div><div class="lbl">上下文長度</div><div class="val" id="statCtx">—</div></div>
     </div>
   </div>
 </section>
@@ -431,7 +428,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="console">
   <div class="wrap">
     <div class="shead"><h2>操作台</h2><span class="en">generator</span></div>
-    <p class="sub">輸入開頭，選好取樣強度，讓模型一個字一個字往下接。右側每一條都是模型此刻算出的機率分佈——它不是在「理解」，只是在給每個字打分。</p>
+    <p class="sub">輸入開頭，選好取樣強度，讓 Qwen 一個字一個字往下接；右側軌跡圖把已生成的字依座標連成路徑。</p>
 
     <div class="console">
       <div class="bar">
@@ -452,11 +449,6 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">i love</button>
         </div>
         <div class="controls">
-          <div class="seg" id="modelSeg">
-            <button aria-pressed="false" data-model="0.5">0.5</button>
-            <button aria-pressed="true" data-model="3">3</button>
-            <button aria-pressed="false" data-model="7">7</button>
-          </div>
           <div class="slider">
             <label for="temp">溫度 <span id="tempVal">0.55</span></label>
             <input type="range" id="temp" min="0.2" max="1.5" step="0.05" value="0.55">
@@ -466,7 +458,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
             <input type="range" id="topk" min="1" max="20" step="1" value="3">
           </div>
         </div>
-        <p class="ctxline" id="webqNote">本機 Ollama（localhost:11434）：0.5／3／7 對應 qwen2.5:0.5b／3b／7b。模型需先用 ollama pull 下載；請用本機伺服器以 http://localhost 開啟本頁（直接開 file:// 會被 CORS 擋下），服務未啟動或缺檔時會在下方顯示原因。</p>
+        <p class="ctxline" id="webqNote">模型由選定後端提供：Ollama 走本機 localhost:11434；Web 走瀏覽器 WebGPU。模型未啟動或缺檔時會在下方顯示原因。</p>
       </div>
 
       <div class="readout">
@@ -475,8 +467,8 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
       </div>
 
       <div class="probs">
-        <div class="head"><span>STEP DISTRIBUTION</span><b id="pplOut">—</b></div>
-        <div id="probList"><div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div></div>
+        <div class="head"><span>ENGINE</span><b id="pplOut">—</b></div>
+        <div id="probList"><div class="probtag"><span class="ch">—</span><span class="pc">尚未連線</span></div></div>
       </div>
 
       <div class="traj">
@@ -491,7 +483,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="chat">
   <div class="wrap">
     <div class="shead"><h2>對話模式</h2><span class="en">chat</span></div>
-    <p class="sub">你打字，它回一句。它其實沒有讀懂你的問題：8 個字的上下文裝不下整句問答（這也是為什麼它自己接話常常接歪）。這裡的做法是——先在語料裡找出跟你這句話最接近的問法，比對字的重疊程度，再交出那句問法的答話。想知道它自己接會變成什麼樣，把問題打得離語料遠一點試試。</p>
+    <p class="sub">你打字，Qwen 回一句。每則對話以系統提示加上當前問題送出，不保留長段對話記憶。</p>
 
     <div class="chat">
       <div class="chatlog" id="chatlog">
@@ -509,85 +501,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">你幾點下班？</button>
           <button class="chip">明天見。</button>
         </div>
-        <div class="chatnote" id="chatNote">模型在瀏覽器裡即時推論，每次回應約 0.1 秒內完成。</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="versus">
-  <div class="wrap">
-    <div class="shead"><h2>兩種引擎</h2><span class="en">compare</span></div>
-    <p class="sub">同一個提示詞、同樣的取樣參數，交給兩個模型各寫一次。左邊是查表數次數，右邊是查表找向量再過神經層——差別在於沒見過的組合，誰還接得下去。</p>
-
-    <div class="versus">
-      <div class="vcell">
-        <h3>MLP 神經語言模型 <i>embedding 32 · hidden 128</i></h3>
-        <div class="vout" id="vMlp">—</div>
-        <div class="vmeta" id="vMlpMeta">—</div>
-      </div>
-      <div class="vcell">
-        <h3>n-gram 統計模型 <i>bigram + unigram · add-k 平滑</i></h3>
-        <div class="vout" id="vNg">—</div>
-        <div class="vmeta" id="vNgMeta">—</div>
-      </div>
-    </div>
-    <button class="vbtn" id="vRun">兩邊同時生成</button>
-  </div>
-</section>
-
-<section id="inside">
-  <div class="wrap">
-    <div class="shead"><h2>內部構造</h2><span class="en">inside</span></div>
-    <p class="sub">兩個模型吃的是同一份語料，用的卻是完全不同的方式把「前文」變成「下一個字的機率」。</p>
-
-    <div class="inside">
-      <div class="icell">
-        <h3>MLP：八個字換一個分佈</h3>
-        <p id="mlpDesc">每個字先查成一條向量，接起來攤平，穿過一層 tanh 隱藏層，最後對詞表每個字各打一個分數，softmax 成機率。</p>
-        <div class="fig">
-          <div class="mod"><span id="figCtxLbl">前 8 個字</span><b id="figCtxVal">id → 8</b></div>
-          <div class="arrow">↓ 查表</div>
-          <div class="mod"><span>字向量 Embedding</span><b id="figEmb">—</b></div>
-          <div class="arrow">↓ 攤平</div>
-          <div class="mod"><span>隱藏層 Linear + tanh</span><b id="figFc1">—</b></div>
-          <div class="arrow">↓</div>
-          <div class="mod"><span>輸出層 Linear</span><b id="figFc2">—</b></div>
-          <div class="arrow">↓ softmax</div>
-          <div class="mod"><span id="figVocab">詞表機率</span><b>和 = 1</b></div>
-        </div>
-      </div>
-      <div class="icell">
-        <h3>n-gram：數前文出現過幾次</h3>
-        <p>不看語義，只查表。前一個字是什麼，就看語料裡這個字後面接過哪些字、各接過幾次。沒查到的組合退回更短的一元統計。</p>
-        <div class="lookup">
-          <div class="row"><span>前文</span><span>下一個字</span><span>次數</span></div>
-          <div class="row"><span>今天</span><span class="hit">天</span><span>12</span></div>
-          <div class="row"><span>今天</span><span class="hit">，</span><span>9</span></div>
-          <div class="row"><span>今天</span><span>學</span><span>2</span></div>
-          <div class="row"><span>今天</span><span>早</span><span>1</span></div>
-        </div>
-        <p style="margin:14px 0 0;font-size:12.5px;color:#8D887A" id="ngramNote">表內為示意次數；實際頁面使用匯出的 bigram 真實計數。</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<section id="position">
-  <div class="wrap">
-    <div class="shead"><h2>位置</h2><span class="en">position</span></div>
-    <p class="sub">模型要怎麼知道哪個字在前、哪個在後？它沒有額外加一個「第幾個字」的向量。位置資訊藏在槽位裡：前 8 個字依序排進 8 個位置，每個位置接到的是隱藏層權重的不同欄位。同一批字換個順序，進到網路裡的 256 維向量就完全不同。</p>
-
-    <div class="pos">
-      <div class="poscell">
-        <h3>同一組字，換順序就換答案</h3>
-        <p>下面是模型此刻真的算出來的前三名（百分比為實際機率）。左邊兩字一換位，接下去的字就變了。</p>
-        <div class="ptable">
-          <div class="hrow"><span>前文</span><span>第 1 名</span><span>第 2 名</span><span>第 3 名</span></div>
-          <div id="probeRows"></div>
-        </div>
-        <p style="margin-top:14px;font-size:12.5px;color:#8D887A">字盤每格上方有兩行小字：第一行是位置序號（位置 1 最遠、位置 8 最近，越近對下一個字影響越大）；第二行是這個字的字向量二維座標（PCA 投影，對照下方「字元的座標」地圖）。</p>
+        <div class="chatnote" id="chatNote">回答由選定的 Qwen 後端即時產生。</div>
       </div>
     </div>
   </div>
@@ -596,7 +510,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="embed">
   <div class="wrap">
     <div class="shead"><h2>字元的座標</h2><span class="en">embedding map</span></div>
-    <p class="sub">座標取自 <span id="embSrc">Qwen2.5-7B</span> 參考字向量（<span id="embDim">3584</span> 維，PCA 壓到二維；本模型自訓的 32 維向量用在前面的生成推論）。語義相近的字在圖上通常比較近，已對應 <span id="embMatch"></span>。點任一點，可把該字帶入操作台的提示詞。</p>
+    <p class="sub">座標取自 <span id="embSrc">Qwen2.5-7B</span> 參考字向量（<span id="embDim">3584</span> 維，PCA 壓到二維）。語義相近的字在圖上通常比較近，已對應 <span id="embMatch"></span>。點任一點，可把該字帶入操作台的提示詞。</p>
     <div class="embedbar">
       <input type="text" id="embSearch" maxlength="4" placeholder="搜尋一個字…" aria-label="搜尋字元">
       <div class="legend" id="embLegend"></div>
@@ -606,45 +520,25 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
   </div>
 </section>
 
-<section id="data">
-  <div class="wrap">
-    <div class="shead"><h2>數字</h2><span class="en">measurements</span></div>
-    <p class="sub">困惑度（perplexity）越低，表示模型對下一個字越不意外。這裡的數字全部來自實際訓練結果。</p>
-
-    <div class="data">
-      <div class="dcell">
-        <div class="cap"><h3>訓練損失</h3><i id="lossCap">cross-entropy</i></div>
-        <div class="chart" id="chartLoss"></div>
-        <div class="note" id="lossNote">損失下降趨勢見折線圖。</div>
-      </div>
-      <div class="dcell">
-        <div class="cap"><h3>困惑度對照</h3><i>越低越好</i></div>
-        <div class="chart" id="chartPpl"></div>
-        <div class="note" id="pplNote">驗證集困惑度高於訓練集，說明模型對沒背過的組合仍不擅長預測。</div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section id="limits">
   <div class="wrap">
     <div class="shead"><h2>它能做到什麼，做不到什麼</h2><span class="en">limits</span></div>
     <div class="limits">
       <div class="limit">
-        <h4>只看 8 個字</h4>
-        <p>上下文固定 8 字。超過這個距離的資訊一律被丟掉，所以它接不出需要長距離呼應的句子。</p>
+        <h4>單輪提示生成</h4>
+        <p>每則回答以系統提示加上當前問題送出，不保留長段對話記憶；上下文長短由後端模型本身決定。</p>
       </div>
       <div class="limit">
-        <h4>語料是拼出來的</h4>
-        <p>語料含一部分從網路收集的真實中英句子，也有不少模板合成句；模型學會的是常見字詞搭配與句型骨架，不是自然語言的全部細節。</div>
+        <h4>權重不在 HTML 內</h4>
+        <p>Qwen 權重保留在後端：Ollama 本機端或瀏覽器 WebGPU 快取；單一 HTML 只內嵌字元座標與圖表庫，不內嵌模型權重。</p>
       </div>
       <div class="limit">
-        <h4>沒有詞義</h4>
-        <p>字級建模，一個字就是一個編號。「開會」和「開車」的「開」在模型眼裡完全一樣。</p>
+        <h4>座標是投影</h4>
+        <p>字元地圖的二維位置是 Qwen 參考嵌入的 PCA 投影，只保留兩個主方向；平面上的遠近不等於語義上的全部關係。</p>
       </div>
       <div class="limit">
-        <h4>會復誦訓練句</h4>
-        <p>參數相對語料仍偏多，某些提示詞會讓它整句照抄訓練資料。這是過擬合的直觀表現。</p>
+        <h4>輸出有上限</h4>
+        <p>示範生成限制在約一百餘字，長文會在到達上限時截斷；溫度與 top-k 只取操作台滑桿的數值，不代表後端模型的全部取樣能力。</p>
       </div>
     </div>
   </div>
@@ -652,8 +546,8 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 
 <footer>
   <div class="wrap">
-    對話生成走本機 Ollama（Qwen2.5 0.5b／3b／7b，localhost:11434）；頁面內另內嵌專案自訓的 MLP 權重（int8 量化）與 n-gram 計數表，供對照示範在瀏覽器完成。<br>
-    對應檔案：mlp_lm.py / ngram_lm.py / export_model.py
+    示範生成走 Qwen2.5：本機 Ollama（localhost:11434）或瀏覽器 WebGPU（WebLLM）；字元座標取自 Qwen2.5-7B 參考嵌入 PCA 投影。<br>
+    對應檔案：page.tpl.html / page.js / build_html.py
   </div>
 </footer>
 
@@ -710,16 +604,9 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   'use strict';
 
   var DATA = JSON.parse(document.getElementById('model-data').textContent);
-  var ITOS = DATA.itos, V = ITOS.length;
-  var STOI = {};
-  for (var i = 0; i < V; i++) { if (!(ITOS[i] in STOI)) STOI[ITOS[i]] = i; }
-  var SOS = DATA.sos, EOS = STOI['</S>'] !== undefined ? STOI['</S>'] : 1,
-      UNK = STOI['<UNK>'] !== undefined ? STOI['<UNK>'] : 2;
-  var CTX = DATA.meta.ctx;
-  var SH = DATA.mlp.shape;
-  var EMB = SH.emb[1], HID = SH.fc1[0], IN = SH.fc1[1];
+  var CTX = (DATA.meta && DATA.meta.ctx) || 8;
 
-  /* 字元 → PCA 二維座標 [x, y] */
+  /* 字元 → Qwen 參考嵌入 PCA 二維座標 [x, y] */
   var COORD = {};
   (DATA.embmap || []).forEach(function (p) { COORD[p[0]] = [p[1], p[2]]; });
   function coordText(ch) {
@@ -728,300 +615,170 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   }
 
   function el(id) { return document.getElementById(id); }
+  function set(id, txt) { var e = el(id); if (e) e.textContent = txt; }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  /* ---------- 把匯出的指標與維度填進靜態版面 ---------- */
+  var SYS = '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。';
+
+  /* ---------- 後端與模型對應 ---------- */
+  var OLLAMA_URL = 'http://localhost:11434/api/chat';
+  var OLLAMA_TAGS = {
+    '0.5': 'qwen2.5:0.5b',
+    '3': 'qwen2.5:3b',
+    '7': 'qwen2.5:7b'
+  };
+  var WL_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.88/es2022/web-llm.mjs';
+  var WL_MODELS = {
+    '0.5': 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+    '3': 'Qwen2.5-3B-Instruct-q4f16_1-MLC',
+    '7': 'Qwen2.5-7B-Instruct-q4f16_1-MLC'
+  };
+
+  var state = { be: 'ollama', size: '3', ready: false, wlEngine: null, wlKey: '' };
+  function activeTag() {
+    return state.be === 'ollama' ? OLLAMA_TAGS[state.size] : WL_MODELS[state.size];
+  }
+
+  /* ---------- 靜態中繼資料 ---------- */
   (function fillMeta() {
-    var m = DATA.meta;
-    function set(id, txt) { var e = el(id); if (e) e.textContent = txt; }
-    set('topNote', 'char-level language model / ' + m.sentences + ' 句 / ' + V + ' 字 / ' + m.params + ' 參數');
-    set('ledeCount', m.sentences + ' 句中英句子');
-    set('statSent', m.sentences + ' 句');
-    set('statVocab', V + ' 字');
-    set('statPpl', (+m.mlp_val_ppl).toFixed(1));
-    set('statCtx', CTX + ' 字');
-    set('mlpDesc', '每個字先查成一條 ' + EMB + ' 維的向量，' + CTX + ' 個字接起來變成 ' + IN +
-      ' 維，穿過一層 tanh 隱藏層，最後對 ' + V + ' 個字各打一個分數，softmax 成機率。');
-    set('figCtxLbl', '前 ' + CTX + ' 個字');
-    set('figCtxVal', 'id → ' + CTX);
-    set('figEmb', V + '×' + EMB);
-    set('figFc1', HID + '×' + IN);
-    set('figFc2', V + '×' + HID);
-    set('figVocab', V + ' 個字的機率');
-    set('ngramNote', '表內為示意次數；實際頁面使用匯出的 bigram ' + m.bigram_entries + ' 組真實計數。');
-    set('pplNote', '驗證集困惑度 ' + (+m.mlp_val_ppl).toFixed(1) + ' 高於訓練集 ' +
-      (+m.mlp_train_ppl).toFixed(1) + '，說明模型對沒背過的組合仍不擅長預測。');
+    var m = DATA.meta || {};
     var qwen = m.emb_source === 'qwen2.5-7b';
     set('embSrc', qwen ? 'Qwen2.5-7B' : '本模型自訓向量');
-    set('embDim', qwen ? 3584 : EMB);
+    set('embDim', qwen ? 3584 : 32);
     var matchTxt = '';
     if (qwen && m.qwen_matched) {
-        matchTxt = m.qwen_matched + ' 字直接對應';
-        if (m.qwen_borrowed) matchTxt += ' · ' + m.qwen_borrowed + ' 字借用最近鄰';
+      matchTxt = m.qwen_matched + ' 字直接對應';
+      if (m.qwen_borrowed) matchTxt += ' · ' + m.qwen_borrowed + ' 字借用最近鄰';
     }
     set('embMatch', matchTxt);
-    var loss = DATA.loss || [];
-    if (loss.length) {
-      set('lossCap', 'cross-entropy · ' + loss.length + ' epochs');
-      set('lossNote', '損失由 ' + loss[0].toFixed(3) + ' 降到 ' + loss[loss.length - 1].toFixed(3) +
-        '，對應訓練困惑度約 ' + (+m.mlp_train_ppl).toFixed(1) + '。');
-    }
   })();
 
-  /* ---------- int8 反量化 ---------- */
-  function deq(o) {
-    var bin = atob(o.data), n = bin.length;
-    var u8 = new Uint8Array(n);
-    for (var i = 0; i < n; i++) u8[i] = bin.charCodeAt(i) & 255;
-    var i8 = new Int8Array(u8.buffer, 0, n);
-    var out = new Float32Array(n);
-    for (var i = 0; i < n; i++) out[i] = i8[i] * o.scale;
-    return out;
+  /* ---------- 開機閘門 ---------- */
+  var boot = el('boot'), bootStatus = el('bootStatus'), bootEnter = el('bootEnter');
+
+  function refreshStats() {
+    set('statBe', state.be === 'ollama' ? 'Ollama' : 'WebGPU');
+    set('statModel', activeTag());
+    set('statEmb', 'Qwen 嵌入');
+    var m = DATA.meta || {};
+    set('statSent', m.sentences ? m.sentences + ' 句' : '—');
+    set('topNote', (state.be === 'ollama' ? 'ollama' : 'webgpu') + ' / ' + activeTag());
   }
 
-  var EW = deq(DATA.mlp.emb), W1 = deq(DATA.mlp.fc1w), B1 = deq(DATA.mlp.fc1b),
-      W2 = deq(DATA.mlp.fc2w), B2 = deq(DATA.mlp.fc2b);
+  function setBe(be) {
+    state.be = be;
+    el('beSeg').querySelectorAll('button').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-be') === be ? 'true' : 'false');
+    });
+    refreshStats();
+  }
 
-  /* ---------- MLP 前向（回傳 586 維 logits） ---------- */
-  var hin = new Float32Array(IN), hh = new Float32Array(HID), logits = new Float32Array(V);
+  function setSize(size) {
+    state.size = size;
+    ['bootSizeSeg', 'heroSeg'].forEach(function (id) {
+      var box = el(id);
+      if (!box) return;
+      box.querySelectorAll('button').forEach(function (b) {
+        b.setAttribute('aria-pressed', b.getAttribute('data-model') === size ? 'true' : 'false');
+      });
+    });
+    refreshStats();
+  }
 
-  function mlpForward(ids) {
-    var k, j, h, v;
-    for (k = 0; k < CTX; k++) {
-      var base = ids[k] * EMB;
-      for (j = 0; j < EMB; j++) hin[k * EMB + j] = EW[base + j];
+  el('beSeg').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button') : null;
+    if (b) setBe(b.getAttribute('data-be'));
+  });
+  ['bootSizeSeg', 'heroSeg'].forEach(function (id) {
+    el(id).addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      if (b) setSize(b.getAttribute('data-model'));
+    });
+  });
+
+  function reopenBoot(msg) {
+    if (msg) {
+      bootStatus.classList.add('err');
+      bootStatus.textContent = msg;
     }
-    for (h = 0; h < HID; h++) {
-      var s = B1[h], row = h * IN;
-      for (j = 0; j < IN; j++) s += W1[row + j] * hin[j];
-      hh[h] = Math.tanh(s);
+    state.ready = false;
+    boot.classList.remove('hide');
+  }
+
+  /* Ollama 連線檢查：服務可達，且選定模型已安裝 */
+  function checkOllama() {
+    var tag = OLLAMA_TAGS[state.size];
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, 6000);
+    return fetch('http://localhost:11434/api/tags', { signal: ctrl.signal })
+      .catch(function () {
+        throw new Error('連不上 Ollama（localhost:11434）。請確認服務已啟動；若從 file:// 或外部網址開檔被 CORS 擋下，請用本機伺服器以 http://localhost 開啟，或設定 OLLAMA_ORIGINS=* 後重啟。');
+      })
+      .then(function (resp) {
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error('Ollama 回應錯誤 ' + resp.status);
+        return resp.json();
+      })
+      .then(function (data) {
+        var names = (data.models || []).map(function (m) { return m.name; });
+        var hit = names.some(function (n) { return n === tag || n.indexOf(tag) === 0; });
+        if (!hit) throw new Error('模型 ' + tag + ' 未安裝，請先執行：ollama pull ' + tag);
+      });
+  }
+
+  /* WebLLM 引擎：動態載入 WebGPU 推論，依尺寸快取 */
+  function ensureWebEngine() {
+    if (!('gpu' in navigator)) {
+      return Promise.reject(new Error('此瀏覽器不支援 WebGPU（需 Chrome／Edge 113+），無法使用 Web 後端。'));
     }
-    for (v = 0; v < V; v++) {
-      var a = B2[v], r2 = v * HID;
-      for (h = 0; h < HID; h++) a += W2[r2 + h] * hh[h];
-      logits[v] = a;
-    }
-    return logits;
+    var model = WL_MODELS[state.size];
+    if (state.wlEngine && state.wlKey === model) return Promise.resolve();
+    bootStatus.textContent = '載入 WebLLM 引擎…';
+    return import(WL_CDN)
+      .then(function (mod) {
+        bootStatus.textContent = '下載 Qwen 模型（首次約數百 MB，之後由瀏覽器快取）…';
+        return mod.CreateMLCEngine(model, {
+          initProgressCallback: function (p) { if (p && p.text) bootStatus.textContent = p.text; }
+        });
+      })
+      .then(function (engine) {
+        state.wlEngine = engine;
+        state.wlKey = model;
+      });
   }
 
-  /* ---------- n-gram 查表 ---------- */
-  var NG_K = 0.1;
-  var uni = new Float32Array(V);
-  var uk = DATA.ngram.unigram;
-  for (var ukey in uk) uni[+ukey] = uk[ukey];
-  var uniTot = DATA.ngram.total_uni;
-  var p1 = new Float32Array(V);
-  for (var v1 = 0; v1 < V; v1++) p1[v1] = (uni[v1] + NG_K) / (uniTot + NG_K * V);
-
-  var BIG = {};
-  function prep(table, dst) {
-    for (var key in table) {
-      var arr = table[key], tot = 0, i;
-      for (i = 0; i < arr.length; i++) tot += arr[i][1];
-      var den = tot + NG_K * V, probs = new Float32Array(arr.length);
-      for (i = 0; i < arr.length; i++) probs[i] = (arr[i][1] + NG_K) / den;
-      dst[key] = { ids: arr, p: probs };
-    }
-  }
-  prep(DATA.ngram.bigram, BIG);
-
-  var ngp = new Float32Array(V);
-  function ngForward(hist) {
-    var L = hist.length, a = hist[L - 1];
-    var e2 = BIG[String(a)], i, v;
-    for (v = 0; v < V; v++) ngp[v] = 0.2 * p1[v];
-    if (e2) { for (i = 0; i < e2.ids.length; i++) ngp[e2.ids[i][0]] += 0.8 * e2.p[i]; }
-    else { for (v = 0; v < V; v++) ngp[v] += 0.8 * p1[v]; }
-    return ngp;
+  function bootConnect() {
+    bootEnter.disabled = true;
+    bootEnter.textContent = '連線中…';
+    bootStatus.classList.remove('err');
+    bootStatus.textContent = '連線中…';
+    var pending = state.be === 'ollama' ? checkOllama() : ensureWebEngine();
+    job.then(function () {
+      state.ready = true;
+      boot.classList.add('hide');
+      refreshStats();
+    }).catch(function (err) {
+      bootStatus.classList.add('err');
+      bootStatus.textContent = (err && err.message) ? err.message : '連線失敗';
+    }).finally(function () {
+      bootEnter.disabled = false;
+      bootEnter.textContent = '進入';
+    });
   }
 
-  /* ---------- 溫度 + 取樣 ---------- */
-  var probBuf = new Float32Array(V), idxarr = [];
-
-  function softmaxT(src, temp, isLogit) {
-    var mx = -Infinity, v, s;
-    for (v = 0; v < V; v++) {
-      s = isLogit ? src[v] / temp
-                  : (src[v] > 0 ? Math.log(src[v]) / temp : -Infinity);
-      probBuf[v] = s;
-      if (s > mx) mx = s;
-    }
-    if (!isFinite(mx)) mx = 0;
-    var sum = 0, e;
-    for (v = 0; v < V; v++) { e = Math.exp(probBuf[v] - mx); probBuf[v] = e; sum += e; }
-    for (v = 0; v < V; v++) probBuf[v] /= sum;
-    return probBuf;
-  }
-
-  function applyTopK(p, topk) {
-    if (topk >= V) return p;
-    idxarr.length = 0;
-    var v;
-    for (v = 0; v < V; v++) idxarr.push(v);
-    idxarr.sort(function (x, y) { return p[y] - p[x]; });
-    var kth = p[idxarr[Math.min(topk, V) - 1]], sum = 0;
-    for (v = 0; v < V; v++) { if (p[v] < kth) { p[v] = 0; } sum += p[v]; }
-    if (sum > 0) for (v = 0; v < V; v++) p[v] /= sum;
-    return p;
-  }
-
-  function sampleP(p) {
-    var r = Math.random(), acc = 0, v;
-    for (v = 0; v < V; v++) {
-      if (p[v] === 0) continue;
-      acc += p[v];
-      if (r < acc) return v;
-    }
-    return V - 1;
-  }
-
-  function topList(p, n) {
-    var arr = [], v;
-    for (v = 0; v < V; v++) arr.push([v, p[v]]);
-    arr.sort(function (x, y) { return y[1] - x[1]; });
-    return arr.slice(0, n);
-  }
-
-  function enc(text) {
-    var out = [], chars = Array.from(text), i, id;
-    for (i = 0; i < chars.length; i++) {
-      id = STOI[chars[i]];
-      out.push(id === undefined ? UNK : id);
-    }
-    return out;
-  }
-
-  function padHist() {
-    var h = [], i;
-    for (i = 0; i < CTX; i++) h.push(SOS);
-    return h;
-  }
-
-  function lastCtx(hist) {
-    var out = [], L = hist.length, i;
-    for (i = CTX; i > 0; i--) out.push(hist[L - i]);
-    return out;
-  }
-
-  function distOf(model, hist, temp) {
-    return model === 'mlp'
-      ? softmaxT(mlpForward(lastCtx(hist)), temp, true)
-      : softmaxT(ngForward(hist), temp, false);
-  }
-
-  /* ---------- 首屏字盤 ---------- */
-  var band = el('band'), cells = band.children, traceAlts = el('traceAlts');
-  var heroHist = null, heroPos = 0, heroTimer = null, heroLive = true;
-
-  function clearBand() {
-    for (var i = 0; i < cells.length; i++) {
-      var g = cells[i].querySelector('.gl');
-      var p = cells[i].querySelector('.pos');
-      if (g) g.textContent = '·';
-      if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span>';
-      cells[i].classList.remove('filled', 'pop');
-      cells[i].classList.add('empty');
-    }
-  }
-  function paintCell(i, ch) {
-    if (i >= cells.length) return;
-    var c = cells[i], g = c.querySelector('.gl'), p = c.querySelector('.pos');
-    if (g) { g.textContent = ch; } else { c.textContent = ch; }
-    if (p) p.innerHTML = '<span class="pn">' + (i + 1) + '</span><span class="pc">' + coordText(ch) + '</span>';
-    c.classList.remove('empty');
-    c.classList.add('filled', 'pop');
-    setTimeout(function () { c.classList.remove('pop'); }, 320);
-  }
-  function labelOf(id) {
-    if (id === EOS) return '終';
-    if (id === UNK) return '?';
-    return ITOS[id];
-  }
-  function showAlts(p) {
-    var top = topList(p, 3), parts = [];
-    for (var i = 0; i < top.length; i++) {
-      parts.push('<span>' + esc(labelOf(top[i][0])) + '<i>' + Math.round(top[i][1] * 100) + '%</i></span>');
-    }
-    traceAlts.innerHTML = parts.join('');
-  }
-
-  function heroStep() {
-    heroTimer = null;
-    if (!heroLive || slowMotion) return;
-    if (!heroHist) {
-      heroHist = padHist().concat(enc('今'));
-      clearBand();
-      paintCell(0, '今');
-      heroPos = 1;
-    }
-    var p = distOf('mlp', heroHist, 0.6);
-    applyTopK(p, 3);
-    var b = sampleP(p);
-    showAlts(p);
-    if (b === EOS || heroPos >= cells.length) {
-      heroHist = null;
-      traceAlts.textContent = '換一句…';
-      heroTimer = setTimeout(heroStep, 1400);
-      return;
-    }
-    heroHist.push(b);
-    paintCell(heroPos, ITOS[b]);
-    heroPos++;
-    heroTimer = setTimeout(heroStep, 620);
-  }
-
-  function resumeHero(delay) {
-    if (slowMotion || !heroLive || heroTimer) return;
-    heroTimer = setTimeout(heroStep, delay || 200);
-  }
-
-  var slowMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (slowMotion) {
-    ['今', '天', '天', '氣', '很', '好'].forEach(function (c, i) { paintCell(i, c); });
-    traceAlts.textContent = '示意畫面（已依系統設定關閉自動播放）';
-  }
-
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(function (entries) {
-      heroLive = entries[0].isIntersecting;
-      if (heroLive) resumeHero(200);
-    }, { threshold: 0.12 }).observe(band);
-  } else {
-    resumeHero(400);
-  }
+  bootEnter.addEventListener('click', bootConnect);
+  el('switchBe').addEventListener('click', function () { reopenBoot('重新選擇後端或尺寸。'); });
 
   /* ---------- 操作台 ---------- */
   var genBtn = el('gen'), tempEl = el('temp'), topkEl = el('topk'),
       genOut = el('genOut'), ctxline = el('ctxline'), probList = el('probList'),
       pplOut = el('pplOut');
-  var curModel = '3', job = null;
+  var job = null;
 
-  /* 本機 Ollama 服務。三顆數字按鈕對應 Qwen2.5 不同尺寸；
-     模型需先用 `ollama pull` 下載到本機，頁面只負責呼叫 localhost:11434。 */
-  var OLLAMA_URL = 'http://localhost:11434/api/chat';
-  var OLLAMA_MODELS = {
-    '0.5': 'qwen2.5:0.5b',
-    '3': 'qwen2.5:3b',
-    '7': 'qwen2.5:7b'
-  };
-
-  function selectSeg(model) {
-    var kids = el('modelSeg').querySelectorAll('button');
-    for (var i = 0; i < kids.length; i++) {
-      kids[i].setAttribute('aria-pressed', kids[i].getAttribute('data-model') === model ? 'true' : 'false');
-    }
-    curModel = model;
-    probList.innerHTML = '<div class="prow"><div class="ch">—</div><div class="track"></div><div class="pc">—</div></div>';
-    pplOut.textContent = '—';
-  }
-
-  el('modelSeg').addEventListener('click', function (e) {
-    var b = e.target.closest ? e.target.closest('button') : null;
-    if (!b) return;
-    selectSeg(b.getAttribute('data-model'));
-  });
+  tempEl.addEventListener('input', function () { el('tempVal').textContent = (+this.value).toFixed(2); });
+  topkEl.addEventListener('input', function () { el('topkVal').textContent = this.value; });
 
   el('chips').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.chip') : null;
@@ -1029,9 +786,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     el('prompt').value = b.textContent;
     startJob();
   });
-
-  tempEl.addEventListener('input', function () { el('tempVal').textContent = (+this.value).toFixed(2); });
-  topkEl.addEventListener('input', function () { el('topkVal').textContent = this.value; });
 
   genBtn.addEventListener('click', function () {
     if (job) {
@@ -1041,18 +795,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     }
     startJob();
   });
-
-  function renderDist(p, chosen) {
-    var top = topList(p, 8), html = '', max = top[0][1] || 1, i;
-    for (i = 0; i < top.length; i++) {
-      var id = top[i][0], w = (top[i][1] / max) * 100, isC = id === chosen;
-      html += '<div class="prow"><div class="ch"' + (isC ? ' style="color:var(--cin)"' : '') + '>' +
-        esc(labelOf(id)) + '</div><div class="track"><div class="fill" style="width:' + w.toFixed(1) + '%' +
-        (isC ? '' : ';background:#6B6558') + '"></div></div><div class="pc">' +
-        (top[i][1] * 100).toFixed(1) + '%</div></div>';
-    }
-    probList.innerHTML = html;
-  }
 
   function renderOut(chars, streaming) {
     var html = '', i, n = chars.length;
@@ -1129,88 +871,49 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     });
   }
 
-  function startJob() {
-    if (job) job.stop = true;
-    var model = curModel;
-    var prompt = (el('prompt').value || '').trim() || '今天';
-    var chars = Array.from(prompt);
-    var hist = padHist().concat(enc(prompt));
-    var temp = +tempEl.value, topk = +topkEl.value;
-    if (OLLAMA_MODELS[model]) { ollamaJob(model, prompt, chars, temp, topk); return; }
-    var cap = chars.length + 26;
-    var my = { stop: false, logp: 0, n: 0 };
-    job = my;
-
-    genBtn.textContent = '停止';
-    genBtn.classList.add('pause');
-    renderOut(chars, true);
-    renderTraj(chars);
-    ctxline.textContent = '上下文：' + (chars.slice(-CTX).join('') || '—');
-    pplOut.textContent = '計算中…';
-    probList.innerHTML = '';
-
-    function finish() {
-      my.stop = true;
-      if (job !== my) return;
-      job = null;
-      genBtn.textContent = '生成';
-      genBtn.classList.remove('pause');
-      if (!my.done) {
-        renderOut(chars, false);
-        renderTraj(chars);
-        my.done = true;
-      }
-      if (my.n > 0) {
-        pplOut.textContent = '本次生成困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
-      }
-    }
-
-    function tick() {
-      if (my.stop) { finish(); return; }
-      if (chars.length >= cap) { finish(); return; }
-      var p = distOf(model, hist, temp);
-      applyTopK(p, topk);
-      var chosen = sampleP(p);
-      if (chosen === EOS) { renderDist(p, chosen); finish(); return; }
-      renderDist(p, chosen);
-      hist.push(chosen);
-      chars.push(ITOS[chosen]);
-      my.logp += Math.log(Math.max(p[chosen], 1e-12));
-      my.n += 1;
-      pplOut.textContent = '本次生成困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
-      ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
-      renderOut(chars, true);
-      renderTraj(chars);
-      setTimeout(tick, 62);
-    }
-    setTimeout(tick, 90);
-  }
-
-  /* ---------- 本機 Ollama Qwen2.5（0.5 / 3 / 7） ---------- */
-  function ollamaJob(size, prompt, chars, temp, topk) {
-    var tag = OLLAMA_MODELS[size];
-    var cap = chars.length + 120;
-    var my = { stop: false, done: false, controller: new AbortController() };
-    job = my;
+  function beginJob(chars) {
     genBtn.textContent = '停止';
     genBtn.classList.add('pause');
     renderOut(chars, true);
     renderTraj(chars);
     ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
-    probList.innerHTML = '<div class="prow"><div class="ch">' + esc(tag) +
-      '</div><div class="track"></div><div class="pc">本機 Ollama</div></div>';
+  }
 
-    function finish() {
-      my.stop = true;
-      if (job !== my) return;
-      job = null;
-      genBtn.textContent = '生成';
-      genBtn.classList.remove('pause');
-      if (!my.done) { renderOut(chars, false); renderTraj(chars); my.done = true; }
+  function finishJob(my) {
+    my.stop = true;
+    if (job !== my) return;
+    job = null;
+    genBtn.textContent = '生成';
+    genBtn.classList.remove('pause');
+    if (!my.done) { renderOut(my.chars, false); renderTraj(my.chars); my.done = true; }
+  }
+
+  function startJob() {
+    if (!state.ready) { reopenBoot('請先連線 Qwen 後再生成。'); return; }
+    if (job) {
+      job.stop = true;
+      if (job.controller) job.controller.abort();
+      return;
     }
-    function fail(reason) { finish(); pplOut.textContent = reason; }
+    var prompt = (el('prompt').value || '').trim() || '今天';
+    var chars = Array.from(prompt);
+    var temp = +tempEl.value, topk = +topkEl.value;
+    if (state.be === 'ollama') ollamaJob(prompt, chars, temp, topk);
+    else webJob(prompt, chars, temp, topk);
+  }
 
+  /* ---------- Ollama 串流生成 ---------- */
+  function ollamaJob(prompt, chars, temp, topk) {
+    var tag = OLLAMA_TAGS[state.size];
+    var cap = chars.length + 120;
+    var my = { stop: false, done: false, controller: new AbortController(), chars: chars };
+    job = my;
+    beginJob(chars);
+    probList.innerHTML = '<div class="probtag"><span class="ch">' + esc(tag) +
+      '</span><span class="pc">本機 Ollama</span></div>';
     pplOut.textContent = '連線 Ollama 中…';
+
+    function fail(reason) { finishJob(my); pplOut.textContent = reason; }
 
     (async function () {
       var resp;
@@ -1222,7 +925,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
           body: JSON.stringify({
             model: tag,
             messages: [
-              { role: 'system', content: '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。' },
+              { role: 'system', content: SYS },
               { role: 'user', content: prompt }
             ],
             stream: true,
@@ -1231,7 +934,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
         });
       } catch (err) {
         if (my.stop) return;
-        fail('連不上 Ollama（' + OLLAMA_URL + '）。請確認 Ollama 已啟動；若從 file:// 或外部網址開檔被 CORS 擋下，請用本機伺服器以 http://localhost 開啟頁面，或設定 OLLAMA_ORIGINS=* 後重啟 Ollama。');
+        fail('連不上 Ollama：' + (err && err.message ? err.message : '未知錯誤'));
         return;
       }
 
@@ -1276,138 +979,63 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
           }
           if (my.stop) { reader.cancel(); break; }
         }
-        finish();
+        finishJob(my);
       } catch (err) {
-        if (my.stop) { finish(); return; }
+        if (my.stop) { finishJob(my); return; }
         fail('生成中斷：' + (err && err.message ? err.message : '未知錯誤'));
       }
     })();
   }
 
-  /* ---------- 兩引擎對比 ---------- */
-  var vRun = el('vRun');
-  vRun.addEventListener('click', function () {
-    var prompt = (el('prompt').value || '').trim() || '今天';
-    var temp = +tempEl.value, topk = +topkEl.value;
-    var base = padHist().concat(enc(prompt));
-    var target = 22;
+  /* ---------- WebLLM 串流生成 ---------- */
+  function webJob(prompt, chars, temp, topk) {
+    var cap = chars.length + 120;
+    var my = { stop: false, done: false, controller: null, chars: chars };
+    job = my;
+    beginJob(chars);
+    probList.innerHTML = '<div class="probtag"><span class="ch">Qwen</span><span class="pc">瀏覽器 WebGPU</span></div>';
+    pplOut.textContent = '準備 Web 引擎…';
 
-    function runOne(kind) {
-      var hist = base.slice(), chars = Array.from(prompt), logp = 0, n = 0, c, p;
-      while (chars.length < prompt.length + target) {
-        p = distOf(kind, hist, temp);
-        applyTopK(p, topk);
-        c = sampleP(p);
-        if (c === EOS) break;
-        hist.push(c);
-        chars.push(ITOS[c]);
-        logp += Math.log(Math.max(p[c], 1e-12));
-        n++;
+    function fail(reason) { finishJob(my); pplOut.textContent = reason; }
+
+    (async function () {
+      try {
+        await ensureWebEngine();
+        pplOut.textContent = 'Qwen 生成中…';
+        var stream = await state.wlEngine.chat.completions.create({
+          messages: [
+            { role: 'system', content: SYS },
+            { role: 'user', content: prompt }
+          ],
+          stream: true,
+          temperature: temp,
+          top_k: topk,
+          max_tokens: 120
+        });
+        for await (var chunk of stream) {
+          if (my.stop) break;
+          var delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta)
+            ? chunk.choices[0].delta.content : '';
+          if (delta) {
+            Array.from(delta).forEach(function (ch) {
+              if (chars.length < cap) chars.push(ch);
+            });
+            renderOut(chars, true);
+            renderTraj(chars);
+            ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+          }
+        }
+        finishJob(my);
+      } catch (err) {
+        fail('Qwen 載入或推論失敗：' + (err && err.message ? err.message : '未知錯誤'));
       }
-      el(kind === 'mlp' ? 'vMlp' : 'vNg').textContent = chars.join('');
-      el(kind === 'mlp' ? 'vMlpMeta' : 'vNgMeta').textContent =
-        (kind === 'mlp' ? 'MLP' : 'n-gram') + '　共 ' + n + ' 字　生成困惑度 ' +
-        Math.exp(-logp / Math.max(n, 1)).toFixed(1);
-    }
+    })();
+  }
 
-    vRun.textContent = '生成中…';
-    el('vMlp').textContent = '…';
-    el('vNg').textContent = '…';
-    el('vMlpMeta').textContent = '—';
-    el('vNgMeta').textContent = '—';
-    setTimeout(function () {
-      runOne('mlp');
-      runOne('ngram');
-      vRun.textContent = '兩邊同時生成';
-    }, 80);
-  });
-
-
-  /* ---------- 位置實驗表 ---------- */
-  (function renderProbe() {
-    var rows = (DATA.meta.probe || []), html = '', i, j;
-    for (i = 0; i < rows.length; i++) {
-      html += '<div class="row"><span>' + esc(rows[i].ctx) + '</span>';
-      for (j = 0; j < 3; j++) {
-        var it = rows[i].top[j] || ['—', 0];
-        html += '<span><b>' + esc(it[0]) + '</b><em>' + Number(it[1]).toFixed(1) + '%</em></span>';
-      }
-      html += '</div>';
-    }
-    var box = document.getElementById('probeRows');
-    if (box) box.innerHTML = html;
-  })();
-
-  /* ---------- 對話模式 ---------- */
+  /* ---------- 對話模式（Qwen） ---------- */
   var chatLog = el('chatlog'), chatIn = el('chatIn'), chatSend = el('chatSend'),
       chatNote = el('chatNote');
   var chatBusy = false;
-
-  function stripLead(t) {
-    return String(t).replace(/^[—－\-，,、。；;：:\s]+/, '');
-  }
-
-  var DLG = DATA.meta.dialogs || [], DLGG = [];
-  (function prepDialog() {
-    for (var i = 0; i < DLG.length; i++) DLGG.push({ q: DLG[i][0], a: DLG[i][1], g: grams(DLG[i][0]) });
-  })();
-
-  function grams(str) {
-    var a = Array.from(str), out = {}, i;
-    for (i = 0; i < a.length - 1; i++) out[a[i] + a[i + 1]] = 1;
-    return out;
-  }
-
-  function dice(a, b) {
-    var hit = 0, k, na = 0, nb = 0;
-    for (k in a) { na++; if (k in b) hit++; }
-    for (k in b) nb++;
-    return (na + nb) ? (2 * hit) / (na + nb) : 0;
-  }
-
-  function nearest(text) {
-    var g = grams(text), best = null, i, sc;
-    for (i = 0; i < DLGG.length; i++) {
-      sc = dice(g, DLGG[i].g);
-      if (!best || sc > best.score) best = { score: sc, q: DLGG[i].q, a: DLGG[i].a };
-    }
-    return best;
-  }
-
-  function continueFrom(promptText, temp, topk, trials) {
-    var promptChars = Array.from(promptText), best = null, s, t;
-    for (s = 0; s < trials; s++) {
-      var hist = padHist().concat(enc(promptText));
-      var chars = promptChars.slice(), logp = 0, n = 0, out = '';
-      for (t = 0; t < 20; t++) {
-        var p = distOf('mlp', hist, temp);
-        applyTopK(p, topk);
-        var c = sampleP(p);
-        if (c === EOS) break;
-        hist.push(c);
-        chars.push(ITOS[c]);
-        logp += Math.log(Math.max(p[c], 1e-12));
-        n++;
-        out += ITOS[c];
-        if (n >= 2 && /[。？！]/.test(out.charAt(out.length - 1))) break;
-      }
-      var score = logp / Math.max(n, 1);
-      if (n > 0 && (!best || score > best.score)) best = { text: out, score: score, n: n };
-    }
-    return best;
-  }
-
-  function genReply(text) {
-    var n = nearest(text);
-    if (n && n.score >= 0.3) {
-      return { text: n.a, note: '取自語料「' + n.q + '」，相似度 ' + n.score.toFixed(2) };
-    }
-    var r = continueFrom(text + (/([。？！?!.])$/.test(text) ? '' : '。') + '—', 0.45, 2, 3);
-    return {
-      text: r ? stripLead(r.text) : '',
-      note: '沒有相近的問法，改成讓模型直接接話（所以容易接得怪）'
-    };
-  }
 
   function addMsg(text, who, meta) {
     var d = document.createElement('div');
@@ -1423,8 +1051,53 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     return d;
   }
 
+  function ollamaChat(text) {
+    var tag = OLLAMA_TAGS[state.size];
+    return fetch(OLLAMA_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: tag,
+        messages: [
+          { role: 'system', content: SYS },
+          { role: 'user', content: text }
+        ],
+        stream: false,
+        options: { temperature: 0.55, top_k: 3, num_predict: 120 }
+      })
+    }).then(function (resp) {
+      if (!resp.ok) {
+        return resp.text().then(function (b) {
+          throw new Error('Ollama ' + resp.status + (b ? '：' + b.slice(0, 100) : ''));
+        });
+      }
+      return resp.json();
+    }).then(function (d) {
+      return d.message && d.message.content ? d.message.content.trim() : '';
+    });
+  }
+
+  function webChat(text) {
+    return ensureWebEngine().then(function () {
+      return state.wlEngine.chat.completions.create({
+        messages: [
+          { role: 'system', content: SYS },
+          { role: 'user', content: text }
+        ],
+        stream: false,
+        temperature: 0.55,
+        top_k: 3,
+        max_tokens: 120
+      });
+    }).then(function (r) {
+      var c = r.choices && r.choices[0] && r.choices[0].message ? r.choices[0].message.content : '';
+      return (c || '').trim();
+    });
+  }
+
   function sendChat() {
     if (chatBusy) return;
+    if (!state.ready) { reopenBoot('請先連線 Qwen 再對話。'); return; }
     var text = (chatIn.value || '').trim();
     if (!text) return;
     chatIn.value = '';
@@ -1434,19 +1107,21 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     chatSend.textContent = '寫…';
     var pending = addMsg('…', 'bot wait');
 
-    setTimeout(function () {
-      var r = genReply(text);
+    var reply = state.be === 'ollama' ? ollamaChat(text) : webChat(text);
+    reply.then(function (out) {
       chatLog.removeChild(pending);
-      if (!r || !r.text) {
-        addMsg('（接不下去了，換個說法試試。）', 'bot');
-      } else {
-        addMsg(r.text, 'bot', r.note);
-      }
-      chatNote.textContent = '回覆取自語料裡最接近的那組問答；沒有相近問法時才讓模型自己接話。';
+      if (!out) addMsg('（接不下去了，換個說法試試。）', 'bot');
+      else addMsg(out, 'bot', activeTag());
+      chatNote.textContent = '回答由 ' + (state.be === 'ollama' ? '本機 Ollama' : '瀏覽器 WebGPU') +
+        ' 上的 ' + activeTag() + ' 產生。';
+    }).catch(function (err) {
+      chatLog.removeChild(pending);
+      addMsg('（連線失敗：' + (err && err.message ? err.message : '未知錯誤') + '）', 'bot');
+    }).finally(function () {
       chatBusy = false;
       chatSend.disabled = false;
       chatSend.textContent = '送出';
-    }, 30);
+    });
   }
 
   chatSend.addEventListener('click', sendChat);
@@ -1460,179 +1135,101 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     sendChat();
   });
 
-  /* ---------- 圖表 ---------- */
-  function drawCharts() {
-    if (typeof echarts === 'undefined') {
-      el('chartLoss').innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">損失 ' + DATA.loss[0].toFixed(2) + ' → ' + DATA.loss[DATA.loss.length - 1].toFixed(2) + '（' + DATA.loss.length + ' 輪）。</p>';
-      el('chartPpl').innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">2-gram ' + DATA.meta.ngram_bigram_ppl + '　3-gram ' + DATA.meta.ngram_trigram_ppl + '<br>MLP 訓練 ' + DATA.meta.mlp_train_ppl + '　MLP 驗證 ' + DATA.meta.mlp_val_ppl + '</p>';
-      return;
-    }
-    var axisText = { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' };
-    var tip = {
-      trigger: 'axis',
-      backgroundColor: '#1C1D15',
-      borderColor: 'rgba(231,225,210,.2)',
-      textStyle: { color: '#E7E1D2', fontSize: 11 }
-    };
+  /* ---------- 字元座標圖 ---------- */
+  var EMB_STYLE = {
+    zh:    { color: '#E7E1D2', label: '中文字' },
+    en:    { color: '#84A196', label: '英文字母' },
+    digit: { color: '#C0452E', label: '數字' },
+    punct: { color: '#8D887A', label: '標點' },
+    space: { color: '#5E5A50', label: '空格' },
+    sp:    { color: '#5E5A50', label: '特殊符號' }
+  };
+  var embChart = null;
 
-    var loss = echarts.init(el('chartLoss'));
-    loss.setOption({
-      backgroundColor: 'transparent',
-      grid: { left: 36, right: 12, top: 18, bottom: 26 },
-      tooltip: tip,
-      xAxis: {
-        type: 'category',
-        data: DATA.loss.map(function (_, i) { return i + 1; }),
-        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-        axisTick: { show: false },
-        axisLabel: { color: '#8D887A', fontSize: 11, fontFamily: 'monospace', interval: 4 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: axisText,
-        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-      },
-      series: [{
-        type: 'line',
-        data: DATA.loss.map(function (x) { return +x.toFixed(4); }),
-        symbol: 'circle',
-        symbolSize: 3,
-        lineStyle: { color: '#C0452E', width: 1.6 },
-        itemStyle: { color: '#C0452E' },
-        areaStyle: { color: 'rgba(192,69,46,.10)' }
-      }]
+  function embSeries(filter) {
+    var byType = {}, hits = [];
+    (DATA.embmap || []).forEach(function (pt) {
+      var ch = pt[0], x = pt[1], y = pt[2], t = pt[3];
+      var hit = !!filter && ch.indexOf(filter) >= 0;
+      if (hit) { hits.push([x, y, ch]); }
+      else { (byType[t] = byType[t] || []).push([x, y, ch]); }
     });
-
-    var ppl = echarts.init(el('chartPpl'));
-    ppl.setOption({
-      backgroundColor: 'transparent',
-      grid: { left: 36, right: 12, top: 18, bottom: 26 },
-      tooltip: tip,
-      xAxis: {
-        type: 'category',
-        data: ['2-gram', '3-gram', 'MLP 訓練', 'MLP 驗證'],
-        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-        axisTick: { show: false },
-        axisLabel: { color: '#8D887A', fontSize: 11 }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: { show: false },
-        axisTick: { show: false },
-        axisLabel: axisText,
-        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-      },
-      series: [{
-        type: 'bar',
-        barWidth: '34%',
-        data: [+DATA.meta.ngram_bigram_ppl, +DATA.meta.ngram_trigram_ppl, +DATA.meta.mlp_train_ppl, +DATA.meta.mlp_val_ppl],
-        itemStyle: {
-          color: function (p) { return p.dataIndex === 3 ? '#C0452E' : '#84A196'; }
-        },
-        label: {
-          show: true, position: 'top', color: '#C9C2B2',
-          fontSize: 11, fontFamily: 'monospace',
-          formatter: function (p) { return Number(p.value).toFixed(1); }
-        }
-      }]
+    var series = Object.keys(EMB_STYLE).map(function (t) {
+      return {
+        name: EMB_STYLE[t].label, type: 'scatter', data: byType[t] || [],
+        symbolSize: 5, itemStyle: { color: EMB_STYLE[t].color, opacity: 0.62 }
+      };
     });
-
-    /* ---------- 字向量座標圖 ---------- */
-    var EMB_STYLE = {
-      zh:    { color: '#E7E1D2', label: '中文字' },
-      en:    { color: '#84A196', label: '英文字母' },
-      digit: { color: '#C0452E', label: '數字' },
-      punct: { color: '#8D887A', label: '標點' },
-      space: { color: '#5E5A50', label: '空格' },
-      sp:    { color: '#5E5A50', label: '特殊符號' }
-    };
-    var embChart = null;
-
-    function embSeries(filter) {
-      var byType = {}, hits = [];
-      (DATA.embmap || []).forEach(function (pt) {
-        var ch = pt[0], x = pt[1], y = pt[2], t = pt[3];
-        var hit = !!filter && ch.indexOf(filter) >= 0;
-        if (hit) { hits.push([x, y, ch]); }
-        else { (byType[t] = byType[t] || []).push([x, y, ch]); }
+    if (hits.length) {
+      series.push({
+        name: '命中', type: 'scatter', data: hits, symbolSize: 10, zlevel: 2,
+        itemStyle: { color: '#C0452E', opacity: 0.95 }
       });
-      var series = Object.keys(EMB_STYLE).map(function (t) {
-        return {
-          name: EMB_STYLE[t].label, type: 'scatter', data: byType[t] || [],
-          symbolSize: 5, itemStyle: { color: EMB_STYLE[t].color, opacity: 0.62 }
-        };
-      });
-      if (hits.length) {
-        series.push({
-          name: '命中', type: 'scatter', data: hits, symbolSize: 10, zlevel: 2,
-          itemStyle: { color: '#C0452E', opacity: 0.95 }
-        });
-      }
-      return series;
     }
-
-    function drawEmbMap() {
-      var box = el('embMap');
-      if (!box || !DATA.embmap) return;
-      if (typeof echarts === 'undefined') {
-        box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">字向量地圖需要 ECharts 連線載入；離線環境下可改看本機匯出的 模型.txt。</p>';
-        return;
-      }
-      embChart = echarts.init(box);
-      embChart.setOption({
-        backgroundColor: 'transparent',
-        grid: { left: 18, right: 18, top: 18, bottom: 28 },
-        tooltip: {
-          trigger: 'item',
-          backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
-          textStyle: { color: '#E7E1D2', fontSize: 11 },
-          formatter: function (p) {
-            return esc(p.data[2]) + '　(' + p.data[0].toFixed(2) + ', ' + p.data[1].toFixed(2) + ')';
-          }
-        },
-        xAxis: {
-          type: 'value', min: -1.05, max: 1.05,
-          axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
-          axisTick: { show: false }, axisLabel: axisText,
-          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-        },
-        yAxis: {
-          type: 'value', min: -1.05, max: 1.05,
-          axisLine: { show: false }, axisTick: { show: false },
-          axisLabel: axisText,
-          splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
-        },
-        series: embSeries('')
-      });
-      embChart.on('click', function (p) {
-        var ch = p.data[2];
-        if (ch && ch[0] !== '<') {
-          el('prompt').value = ch;
-          el('console').scrollIntoView({ behavior: 'smooth' });
-        }
-      });
-      var lg = el('embLegend');
-      if (lg) {
-        lg.innerHTML = Object.keys(EMB_STYLE).map(function (t) {
-          return '<span><i style="background:' + EMB_STYLE[t].color + '"></i>' + EMB_STYLE[t].label + '</span>';
-        }).join('');
-      }
-      var search = el('embSearch');
-      if (search) {
-        search.addEventListener('input', function () {
-          if (embChart) embChart.setOption({ series: embSeries(this.value.trim()) });
-        });
-      }
-    }
-
-    drawEmbMap();
-    window.addEventListener('resize', function () { loss.resize(); ppl.resize(); if (embChart) embChart.resize(); if (trajChart) trajChart.resize(); });
+    return series;
   }
 
-  if (document.readyState === 'complete') { drawCharts(); }
-  else { window.addEventListener('load', drawCharts); }
+  function drawEmbMap() {
+    var box = el('embMap');
+    if (!box || !DATA.embmap) return;
+    if (typeof echarts === 'undefined') {
+      box.innerHTML = '<p style="color:#8D887A;font-size:12.5px;line-height:1.9;padding-top:12px">字向量地圖需要 ECharts 連線載入；離線環境下可改看本機匯出的 模型.txt。</p>';
+      return;
+    }
+    embChart = echarts.init(box);
+    var axisText = { color: '#8D887A', fontSize: 11, fontFamily: 'monospace' };
+    embChart.setOption({
+      backgroundColor: 'transparent',
+      grid: { left: 18, right: 18, top: 18, bottom: 28 },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: '#1C1D15', borderColor: 'rgba(231,225,210,.2)',
+        textStyle: { color: '#E7E1D2', fontSize: 11 },
+        formatter: function (p) {
+          return esc(p.data[2]) + '　(' + p.data[0].toFixed(2) + ', ' + p.data[1].toFixed(2) + ')';
+        }
+      },
+      xAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { lineStyle: { color: 'rgba(231,225,210,.18)' } },
+        axisTick: { show: false }, axisLabel: axisText,
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      yAxis: {
+        type: 'value', min: -1.05, max: 1.05,
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: axisText,
+        splitLine: { lineStyle: { color: 'rgba(231,225,210,.06)' } }
+      },
+      series: embSeries('')
+    });
+    embChart.on('click', function (p) {
+      var ch = p.data[2];
+      if (ch && ch[0] !== '<') {
+        el('prompt').value = ch;
+        el('console').scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+    var lg = el('embLegend');
+    if (lg) {
+      lg.innerHTML = Object.keys(EMB_STYLE).map(function (t) {
+        return '<span><i style="background:' + EMB_STYLE[t].color + '"></i>' + EMB_STYLE[t].label + '</span>';
+      }).join('');
+    }
+    var search = el('embSearch');
+    if (search) {
+      search.addEventListener('input', function () {
+        if (embChart) embChart.setOption({ series: embSeries(this.value.trim()) });
+      });
+    }
+  }
+
+  drawEmbMap();
+  refreshStats();
+  window.addEventListener('resize', function () {
+    if (embChart) embChart.resize();
+    if (trajChart) trajChart.resize();
+  });
 })();
 
 </script>
