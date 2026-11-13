@@ -193,14 +193,15 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{
   min-height:44px;
-  padding:0 16px;
+  min-width:56px;
+  padding:0 20px;
   background:transparent;
   border:0;
   color:var(--mute);
-  font-family:var(--sans);
-  font-size:13.5px;
+  font-family:var(--mono);
+  font-size:14px;
   cursor:pointer;
-  letter-spacing:.04em;
+  letter-spacing:0;
 }
 .seg button[aria-pressed=true]{background:rgba(192,69,46,.16);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cin)}
 .slider{display:flex;flex-direction:column;gap:2px;min-width:132px;flex:1 1 132px}
@@ -452,9 +453,9 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
         </div>
         <div class="controls">
           <div class="seg" id="modelSeg">
-            <button aria-pressed="true" data-model="mlp">MLP 神經網路</button>
-            <button aria-pressed="false" data-model="ngram">n-gram 統計</button>
-            <button aria-pressed="false" data-model="webq">Qwen2.5 瀏覽器</button>
+            <button aria-pressed="false" data-model="0.5">0.5</button>
+            <button aria-pressed="true" data-model="3">3</button>
+            <button aria-pressed="false" data-model="7">7</button>
           </div>
           <div class="slider">
             <label for="temp">溫度 <span id="tempVal">0.55</span></label>
@@ -465,7 +466,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
             <input type="range" id="topk" min="1" max="20" step="1" value="3">
           </div>
         </div>
-        <p class="ctxline" id="webqNote">Qwen2.5 在瀏覽器內以 WebGPU 執行；首次需下載模型並快取，需 Chrome／Edge 且顯卡記憶體足夠，否則自動退回 MLP。</p>
+        <p class="ctxline" id="webqNote">本機 Ollama（localhost:11434）：0.5／3／7 對應 qwen2.5:0.5b／3b／7b；模型需先用 ollama pull 下載，服務未啟動或缺檔時會在下方顯示原因。</p>
       </div>
 
       <div class="readout">
@@ -651,7 +652,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 
 <footer>
   <div class="wrap">
-    本頁模型由 chinese-lm 專案訓練後匯出：MLP 權重 int8 對稱量化後內嵌，n-gram 計數表直接內嵌，推論全部在瀏覽器完成。<br>
+    對話生成走本機 Ollama（Qwen2.5 0.5b／3b／7b，localhost:11434）；頁面內另內嵌專案自訓的 MLP 權重（int8 量化）與 n-gram 計數表，供對照示範在瀏覽器完成。<br>
     對應檔案：mlp_lm.py / ngram_lm.py / export_model.py
   </div>
 </footer>
@@ -995,14 +996,16 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   var genBtn = el('gen'), tempEl = el('temp'), topkEl = el('topk'),
       genOut = el('genOut'), ctxline = el('ctxline'), probList = el('probList'),
       pplOut = el('pplOut');
-  var curModel = 'mlp', job = null;
+  var curModel = '3', job = null;
 
-  /* WebLLM（瀏覽器端 WebGPU 推論）。模型權重首次執行時由瀏覽器下載並快取，
-     無法內嵌進單一 HTML；改模型只換下面的 model id。
-     Qwen2.5 可選：0.5B / 1.5B / 3B / 7B（7B 約需 5GB 顯示記憶體）。 */
-  var WL_CDN = 'https://esm.sh/@mlc-ai/web-llm@0.2.88/es2022/web-llm.mjs';
-  var WL_MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
-  var wlEngine = null, wlPromise = null;
+  /* 本機 Ollama 服務。三顆數字按鈕對應 Qwen2.5 不同尺寸；
+     模型需先用 `ollama pull` 下載到本機，頁面只負責呼叫 localhost:11434。 */
+  var OLLAMA_URL = 'http://localhost:11434/api/chat';
+  var OLLAMA_MODELS = {
+    '0.5': 'qwen2.5:0.5b',
+    '3': 'qwen2.5:3b',
+    '7': 'qwen2.5:7b'
+  };
 
   function selectSeg(model) {
     var kids = el('modelSeg').querySelectorAll('button');
@@ -1020,12 +1023,6 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     selectSeg(b.getAttribute('data-model'));
   });
 
-  function backToMlp(reason) {
-    selectSeg('mlp');
-    pplOut.textContent = reason;
-    setTimeout(startJob, 250);
-  }
-
   el('chips').addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.chip') : null;
     if (!b) return;
@@ -1037,7 +1034,11 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
   topkEl.addEventListener('input', function () { el('topkVal').textContent = this.value; });
 
   genBtn.addEventListener('click', function () {
-    if (job) { job.stop = true; return; }
+    if (job) {
+      job.stop = true;
+      if (job.controller) job.controller.abort();
+      return;
+    }
     startJob();
   });
 
@@ -1135,7 +1136,7 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     var chars = Array.from(prompt);
     var hist = padHist().concat(enc(prompt));
     var temp = +tempEl.value, topk = +topkEl.value;
-    if (model === 'webq') { wlJob(prompt, chars, temp, topk); return; }
+    if (OLLAMA_MODELS[model]) { ollamaJob(model, prompt, chars, temp, topk); return; }
     var cap = chars.length + 26;
     var my = { stop: false, logp: 0, n: 0 };
     job = my;
@@ -1185,17 +1186,19 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
     setTimeout(tick, 90);
   }
 
-  /* ---------- 瀏覽器端 Qwen（WebLLM / WebGPU） ---------- */
-  function wlJob(prompt, chars, temp, topk) {
-    var cap = chars.length + 80;
-    var my = { stop: false, done: false };
+  /* ---------- 本機 Ollama Qwen2.5（0.5 / 3 / 7） ---------- */
+  function ollamaJob(size, prompt, chars, temp, topk) {
+    var tag = OLLAMA_MODELS[size];
+    var cap = chars.length + 120;
+    var my = { stop: false, done: false, controller: new AbortController() };
     job = my;
     genBtn.textContent = '停止';
     genBtn.classList.add('pause');
     renderOut(chars, true);
     renderTraj(chars);
     ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
-    probList.innerHTML = '<div class="prow"><div class="ch">Qwen</div><div class="track"></div><div class="pc">瀏覽器推論</div></div>';
+    probList.innerHTML = '<div class="prow"><div class="ch">' + esc(tag) +
+      '</div><div class="track"></div><div class="pc">本機 Ollama</div></div>';
 
     function finish() {
       my.stop = true;
@@ -1205,53 +1208,78 @@ var Fr={},Gr={};var Wr,Hr=function(){function t(t,e,n){var i=this;this._sleepAft
       genBtn.classList.remove('pause');
       if (!my.done) { renderOut(chars, false); renderTraj(chars); my.done = true; }
     }
-    function fail(reason) { finish(); backToMlp(reason); }
+    function fail(reason) { finish(); pplOut.textContent = reason; }
 
-    if (!('gpu' in navigator)) {
-      fail('此瀏覽器不支援 WebGPU（需 Chrome／Edge 113+），已退回 MLP');
-      return;
-    }
+    pplOut.textContent = '連線 Ollama 中…';
 
     (async function () {
+      var resp;
       try {
-        if (!wlPromise) {
-          pplOut.textContent = '載入 WebLLM 引擎…';
-          var mod = await import(WL_CDN);
-          pplOut.textContent = '下載 Qwen 模型（首次約數百 MB，之後由瀏覽器快取）…';
-          wlPromise = mod.CreateMLCEngine(WL_MODEL, {
-            initProgressCallback: function (p) {
-              if (p && p.text) pplOut.textContent = p.text;
-            }
-          });
-          wlEngine = await wlPromise;
-        }
-        pplOut.textContent = 'Qwen 生成中…';
-        var stream = await wlEngine.chat.completions.create({
-          messages: [
-            { role: 'system', content: '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。' },
-            { role: 'user', content: prompt }
-          ],
-          stream: true,
-          temperature: temp,
-          top_k: topk,
-          max_tokens: 80
+        resp = await fetch(OLLAMA_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: my.controller.signal,
+          body: JSON.stringify({
+            model: tag,
+            messages: [
+              { role: 'system', content: '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。' },
+              { role: 'user', content: prompt }
+            ],
+            stream: true,
+            options: { temperature: temp, top_k: topk, num_predict: 120 }
+          })
         });
-        for await (var chunk of stream) {
-          if (my.stop) break;
-          var delta = (chunk.choices && chunk.choices[0] && chunk.choices[0].delta)
-            ? chunk.choices[0].delta.content : '';
-          if (delta) {
-            Array.from(delta).forEach(function (ch) {
-              if (chars.length < cap) chars.push(ch);
-            });
-            renderOut(chars, true);
-            renderTraj(chars);
-            ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+      } catch (err) {
+        if (my.stop) return;
+        fail('連不上 Ollama（' + OLLAMA_URL + '）：請確認 Ollama 服務已啟動。');
+        return;
+      }
+
+      if (!resp.ok) {
+        var body = '';
+        try { body = await resp.text(); } catch (e) {}
+        if (resp.status === 404) {
+          fail('模型 ' + tag + ' 未安裝，請先執行：ollama pull ' + tag);
+        } else {
+          fail('Ollama 回應錯誤 ' + resp.status + (body ? '：' + body.slice(0, 120) : ''));
+        }
+        return;
+      }
+
+      pplOut.textContent = '生成中…';
+      var reader = resp.body.getReader();
+      var dec = new TextDecoder();
+      var buf = '';
+      try {
+        while (true) {
+          var rd = await reader.read();
+          if (rd.done) break;
+          buf += dec.decode(rd.value, { stream: true });
+          var idx;
+          while ((idx = buf.indexOf('\n')) >= 0) {
+            var line = buf.slice(0, idx).trim();
+            buf = buf.slice(idx + 1);
+            if (!line) continue;
+            var obj;
+            try { obj = JSON.parse(line); } catch (e) { continue; }
+            if (obj.error) { fail(obj.error); return; }
+            var delta = obj.message && obj.message.content ? obj.message.content : '';
+            if (delta) {
+              Array.from(delta).forEach(function (ch) {
+                if (chars.length < cap) chars.push(ch);
+              });
+              renderOut(chars, true);
+              renderTraj(chars);
+              ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+            }
+            if (obj.done) break;
           }
+          if (my.stop) { reader.cancel(); break; }
         }
         finish();
       } catch (err) {
-        fail('Qwen 載入或推論失敗（' + (err && err.message ? err.message : '未知錯誤') + '），已退回 MLP');
+        if (my.stop) { finish(); return; }
+        fail('生成中斷：' + (err && err.message ? err.message : '未知錯誤'));
       }
     })();
   }

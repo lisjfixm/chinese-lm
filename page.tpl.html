@@ -193,14 +193,15 @@ input[type=text]::placeholder{color:#5E5A50;font-size:16px;font-family:var(--san
 .seg{display:flex;border:1px solid var(--line)}
 .seg button{
   min-height:44px;
-  padding:0 16px;
+  min-width:56px;
+  padding:0 20px;
   background:transparent;
   border:0;
   color:var(--mute);
-  font-family:var(--sans);
-  font-size:13.5px;
+  font-family:var(--mono);
+  font-size:14px;
   cursor:pointer;
-  letter-spacing:.04em;
+  letter-spacing:0;
 }
 .seg button[aria-pressed=true]{background:rgba(192,69,46,.16);color:var(--paper);box-shadow:inset 0 -2px 0 var(--cin)}
 .slider{display:flex;flex-direction:column;gap:2px;min-width:132px;flex:1 1 132px}
@@ -452,9 +453,9 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
         </div>
         <div class="controls">
           <div class="seg" id="modelSeg">
-            <button aria-pressed="true" data-model="mlp">MLP 神經網路</button>
-            <button aria-pressed="false" data-model="ngram">n-gram 統計</button>
-            <button aria-pressed="false" data-model="webq">Qwen2.5 瀏覽器</button>
+            <button aria-pressed="false" data-model="0.5">0.5</button>
+            <button aria-pressed="true" data-model="3">3</button>
+            <button aria-pressed="false" data-model="7">7</button>
           </div>
           <div class="slider">
             <label for="temp">溫度 <span id="tempVal">0.55</span></label>
@@ -465,7 +466,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
             <input type="range" id="topk" min="1" max="20" step="1" value="3">
           </div>
         </div>
-        <p class="ctxline" id="webqNote">Qwen2.5 在瀏覽器內以 WebGPU 執行；首次需下載模型並快取，需 Chrome／Edge 且顯卡記憶體足夠，否則自動退回 MLP。</p>
+        <p class="ctxline" id="webqNote">本機 Ollama（localhost:11434）：0.5／3／7 對應 qwen2.5:0.5b／3b／7b；模型需先用 ollama pull 下載，服務未啟動或缺檔時會在下方顯示原因。</p>
       </div>
 
       <div class="readout">
@@ -651,7 +652,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 
 <footer>
   <div class="wrap">
-    本頁模型由 chinese-lm 專案訓練後匯出：MLP 權重 int8 對稱量化後內嵌，n-gram 計數表直接內嵌，推論全部在瀏覽器完成。<br>
+    對話生成走本機 Ollama（Qwen2.5 0.5b／3b／7b，localhost:11434）；頁面內另內嵌專案自訓的 MLP 權重（int8 量化）與 n-gram 計數表，供對照示範在瀏覽器完成。<br>
     對應檔案：mlp_lm.py / ngram_lm.py / export_model.py
   </div>
 </footer>

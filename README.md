@@ -238,20 +238,35 @@ python3 build_html.py     # 合成 → 活字盤-中英語言模型.html
 
 對話模式的做法是「檢索答話」：先比對字的重疊程度，找出語料中最接近的一句問法，交出它對應的答話；沒有相近問法時，才讓模型用「問句 + 破折號—」自己接話。頁面會標出比對到的問法與相似度。之所以不直接用模型生成答案，是因為 8 個字的上下文裝不下整句問答——它接兩三個字就看不到問題了。
 
-### 8.1 瀏覽器端 Qwen（WebLLM）
+### 8.1 本機 Ollama Qwen2.5（0.5 / 3 / 7）
 
-操作台第三顆按鈕「Qwen2.5 瀏覽器」用 [WebLLM](https://github.com/mlc-ai/web-llm) 在瀏覽器 WebGPU 上直接推論，不走 Ollama、不走後端伺服器。引擎以 ES 模組從 CDN 動態載入，模型權重首次執行時下載並由瀏覽器快取（Cache Storage／IndexedDB），之後可離線讀取。
+操作台頂部三顆數字按鈕切換本機 Ollama 上的 Qwen2.5 尺寸：
 
-需要留意的邊界：
+| 按鈕 | Ollama 模型標籤 |
+| --- | --- |
+| 0.5 | `qwen2.5:0.5b` |
+| 3 | `qwen2.5:3b` |
+| 7 | `qwen2.5:7b` |
 
-- 模型權重（數百 MB 至數 GB）無法內嵌進單一 HTML，因此這顆引擎**第一次啟動需要聯網**；與之相對，內嵌進代碼的只有自訓 MLP／n-gram 權重。
-- 需 WebGPU 環境（Chrome／Edge 113+；Firefox／Safari／行動裝置多數不穩）。無 WebGPU、下載失敗或顯示記憶體不足時，頁面會自動退回自訓 MLP。
-- 預設載入 `Qwen2.5-1.5B-Instruct-q4f16_1-MLC`。可在 `page.js` 的 `WL_MODEL` 切換：0.5B（約 0.9GB VRAM）、1.5B（約 1.6GB）、3B（約 2.5GB）、7B（約 5.1GB，多數裝置會記憶體不足）。
+頁面呼叫 `http://localhost:11434/api/chat`，以串流（NDJSON）逐字取回回答，溫度與 top-k 沿用操作台滑桿。
+
+執行前置：
+
+1. 本機已安裝並啟動 [Ollama](https://ollama.com) 服務（預設埠 11434）。
+2. 用到的模型先下載，例如：`ollama pull qwen2.5:3b`（0.5b、7b 同理）。
+3. 若瀏覽器擋下 `file://` 頁面對 localhost 的跨域請求，為 Ollama 設定環境變數 `OLLAMA_ORIGINS=*` 後重啟服務。
+
+邊界說明：
+
+- 模型權重在 Ollama 本機端，不內嵌進 HTML；HTML 內嵌的自訓 MLP／n-gram 權重只保留給頁面的對照示範面板。
+- Ollama 聊天介面不回傳逐 token 機率，因此 Ollama 生成時的機率列表只顯示模型標籤，也不計算困惑度；逐字座標、上下文行與生成軌跡圖仍照常標示。
+- 連不上服務、模型缺檔或生成中斷時，原因直接顯示在困惑度列，不會自動切換到自訓模型。
 
 ## 九、環境需求
 
 - Python 3.10+
 - 套件：`numpy`、`torch`（CPU 即可）、`matplotlib`（畫損失曲線，選用）、`openpyxl`、`opencc-python-reimplemented`（重跑語料清洗時需要）
+- 對話生成另需本機 [Ollama](https://ollama.com)，並 `ollama pull qwen2.5:0.5b / 3b / 7b` 擇一下載
 
 ```bash
 pip install numpy torch matplotlib openpyxl opencc-python-reimplemented
