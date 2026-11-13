@@ -523,7 +523,7 @@
         });
       } catch (err) {
         if (my.stop) return;
-        fail('連不上 Ollama（' + OLLAMA_URL + '）：請確認 Ollama 服務已啟動。');
+        fail('連不上 Ollama（' + OLLAMA_URL + '）。請確認 Ollama 已啟動；若從 file:// 或外部網址開檔被 CORS 擋下，請用本機伺服器以 http://localhost 開啟頁面，或設定 OLLAMA_ORIGINS=* 後重啟 Ollama。');
         return;
       }
 

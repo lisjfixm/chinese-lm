@@ -254,7 +254,7 @@ python3 build_html.py     # 合成 → 活字盤-中英語言模型.html
 
 1. 本機已安裝並啟動 [Ollama](https://ollama.com) 服務（預設埠 11434）。
 2. 用到的模型先下載，例如：`ollama pull qwen2.5:3b`（0.5b、7b 同理）。
-3. 若瀏覽器擋下 `file://` 頁面對 localhost 的跨域請求，為 Ollama 設定環境變數 `OLLAMA_ORIGINS=*` 後重啟服務。
+3. 跨域（CORS）：Ollama 預設只放行 `http://localhost:*` 與 `http://127.0.0.1:*` 來源；直接用 `file://` 開檔（origin 為 `null`）或從外部網址開啟會被 403 擋下。建議在 HTML 所在目錄跑一個本機靜態伺服器（如 `python -m http.server 8000`），再開 `http://localhost:8000/…html`；或為 Ollama 設定環境變數 `OLLAMA_ORIGINS=*` 後重啟服務。
 
 邊界說明：
 
