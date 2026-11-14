@@ -153,7 +153,7 @@
     bootStatus.classList.remove('err');
     bootStatus.textContent = '連線中…';
     var pending = state.be === 'ollama' ? checkOllama() : ensureWebEngine();
-    job.then(function () {
+    pending.then(function () {
       state.ready = true;
       boot.classList.add('hide');
       refreshStats();
