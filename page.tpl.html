@@ -246,6 +246,14 @@ input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--cin)
 .probtag{display:flex;justify-content:space-between;align-items:center;padding:3px 0}
 .probtag .ch{font-family:var(--serif);font-size:17px}
 .probtag .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+#probList{display:grid}
+.prow{display:grid;grid-template-columns:34px 1fr 52px;align-items:center;gap:12px;padding:3px 0}
+.prow .ch{font-family:var(--serif);font-size:17px;text-align:center}
+.prow .track{height:10px;background:rgba(231,225,210,.06);position:relative}
+.prow .fill{position:absolute;left:0;top:0;height:100%;background:var(--cin);transition:width .22s ease}
+.prow .pc{font-family:var(--mono);font-size:11.5px;color:var(--mute);text-align:right}
+.prow.cur .ch{color:var(--cin)}
+@media(min-width:768px){#probList{grid-template-columns:1fr 1fr;column-gap:32px}}
 .traj{padding:18px 16px 22px;border-top:1px solid var(--line)}
 .traj .head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:12px}
 .traj .head span{font-family:var(--mono);font-size:11px;color:var(--mute);letter-spacing:.08em}
@@ -467,7 +475,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
       </div>
 
       <div class="probs">
-        <div class="head"><span>ENGINE</span><b id="pplOut">—</b></div>
+        <div class="head"><span>候選詞 · 前 10 名</span><b id="pplOut">—</b></div>
         <div id="probList"><div class="probtag"><span class="ch">—</span><span class="pc">尚未連線</span></div></div>
       </div>
 
@@ -483,7 +491,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
 <section id="chat">
   <div class="wrap">
     <div class="shead"><h2>對話模式</h2><span class="en">chat</span></div>
-    <p class="sub">你打字，Qwen 回一句。每則對話以系統提示加上當前問題送出，不保留長段對話記憶。</p>
+    <p class="sub">你打字，Qwen 回一句。保留最近數輪對話作為上下文，可隨時清除重來。</p>
 
     <div class="chat">
       <div class="chatlog" id="chatlog">
@@ -493,6 +501,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
         <div class="promptrow">
           <input type="text" id="chatIn" maxlength="30" placeholder="例如：你吃過飯了嗎？" aria-label="對話輸入">
           <button class="btn" id="chatSend">送出</button>
+          <button class="chip" id="chatClear" type="button">清除對話</button>
         </div>
         <div class="chips" id="chatChips">
           <button class="chip">你吃過飯了嗎？</button>
@@ -501,7 +510,7 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
           <button class="chip">你幾點下班？</button>
           <button class="chip">明天見。</button>
         </div>
-        <div class="chatnote" id="chatNote">回答由選定的 Qwen 後端即時產生。</div>
+        <div class="chatnote" id="chatNote">回答由選定的 Qwen 後端即時產生；候選詞機率僅 Ollama 後端提供。</div>
       </div>
     </div>
   </div>
@@ -525,8 +534,12 @@ footer{padding:34px 0 60px;font-size:12.5px;color:var(--mute);font-family:var(--
     <div class="shead"><h2>它能做到什麼，做不到什麼</h2><span class="en">limits</span></div>
     <div class="limits">
       <div class="limit">
-        <h4>單輪提示生成</h4>
-        <p>每則回答以系統提示加上當前問題送出，不保留長段對話記憶；上下文長短由後端模型本身決定。</p>
+        <h4>短暫對話記憶</h4>
+        <p>對話保留最近數輪作為上下文，可一鍵清除重來；上下文長短由後端模型本身決定。</p>
+      </div>
+      <div class="limit">
+        <h4>候選詞機率</h4>
+        <p>操作台候選分布由 Ollama logprobs 提供前 10 名；Web 後端（WebLLM）此版本不回傳候選機率，會顯示不支援註記。</p>
       </div>
       <div class="limit">
         <h4>權重不在 HTML 內</h4>

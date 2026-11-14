@@ -18,6 +18,61 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
+  var TOP_N = 10;
+
+  function fmtTok(tok) {
+    if (tok == null) return '—';
+    var s = String(tok);
+    if (s === '' || s === ' ' || s === '\n' || s === '\t' || s === '\r') return '（空白）';
+    return esc(s);
+  }
+
+  /* 解析 Ollama logprobs 回應：取出選中 token 與前 N 候選詞（logprob → 自然機率） */
+  function parseLogprobs(obj) {
+    var arr = obj && obj.logprobs;
+    if (!Array.isArray(arr) || !arr.length) return null;
+    var e = arr[arr.length - 1];
+    if (!e) return null;
+    var list = [];
+    (e.top_logprobs || []).forEach(function (t) {
+      if (t && t.token != null) list.push({ tok: t.token, lp: t.logprob });
+    });
+    var chosen = e.token;
+    if (chosen != null) {
+      var hit = list.some(function (x) { return String(x.tok) === String(chosen); });
+      if (!hit) list.push({ tok: chosen, lp: e.logprob });
+    }
+    return { list: list, chosen: chosen, chosenLp: e.logprob };
+  }
+
+  function renderCandidates(box, lp) {
+    if (!lp || !lp.list.length) {
+      box.innerHTML = '<div class="probtag"><span class="ch">—</span><span class="pc">此後端未回傳候選機率</span></div>';
+      return;
+    }
+    var rows = lp.list.slice(0, TOP_N).map(function (r) {
+      return { tok: r.tok, p: Math.exp(Number(r.lp) || -Infinity) };
+    });
+    rows.sort(function (a, b) { return b.p - a.p; });
+    var max = rows[0] ? rows[0].p : 1;
+    box.innerHTML = rows.map(function (r) {
+      var w = max > 0 ? (r.p / max) * 100 : 0;
+      var isC = lp.chosen != null && String(r.tok) === String(lp.chosen);
+      return '<div class="prow' + (isC ? ' cur' : '') + '">' +
+        '<div class="ch">' + fmtTok(r.tok) + '</div>' +
+        '<div class="track"><div class="fill" style="width:' + w.toFixed(1) + '%"></div></div>' +
+        '<div class="pc">' + (r.p * 100).toFixed(1) + '%</div></div>';
+    }).join('');
+  }
+
+  function renderAlts(box, lp) {
+    if (!box) return;
+    if (!lp || !lp.list.length) { box.innerHTML = '連線後顯示下一字…'; return; }
+    box.innerHTML = lp.list.slice(0, 3).map(function (r) {
+      return '<span>' + fmtTok(r.tok) + '<i>' + (Math.exp(Number(r.lp) || -Infinity) * 100).toFixed(1) + '%</i></span>';
+    }).join('');
+  }
+
   var SYS = '你是一個簡短的中文展示模型，用繁體中文回答，避免長篇大論。';
 
   /* ---------- 後端與模型對應 ---------- */
@@ -304,11 +359,11 @@
   function ollamaJob(prompt, chars, temp, topk) {
     var tag = OLLAMA_TAGS[state.size];
     var cap = chars.length + 120;
-    var my = { stop: false, done: false, controller: new AbortController(), chars: chars };
+    var my = { stop: false, done: false, controller: new AbortController(), chars: chars, logp: 0, n: 0 };
     job = my;
     beginJob(chars);
     probList.innerHTML = '<div class="probtag"><span class="ch">' + esc(tag) +
-      '</span><span class="pc">本機 Ollama</span></div>';
+      '</span><span class="pc">候選詞由 Ollama logprobs 提供</span></div>';
     pplOut.textContent = '連線 Ollama 中…';
 
     function fail(reason) { finishJob(my); pplOut.textContent = reason; }
@@ -327,7 +382,10 @@
               { role: 'user', content: prompt }
             ],
             stream: true,
-            options: { temperature: temp, top_k: topk, num_predict: 120 }
+            options: {
+              temperature: temp, top_k: topk, num_predict: 120,
+              logprobs: true, top_logprobs: TOP_N
+            }
           })
         });
       } catch (err) {
@@ -373,6 +431,16 @@
               renderTraj(chars);
               ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
             }
+            var lp = parseLogprobs(obj);
+            if (lp) {
+              renderCandidates(probList, lp);
+              renderAlts(el('traceAlts'), lp);
+              if (typeof lp.chosenLp === 'number') {
+                my.logp += lp.chosenLp;
+                my.n++;
+                pplOut.textContent = '本次困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
+              }
+            }
             if (obj.done) break;
           }
           if (my.stop) { reader.cancel(); break; }
@@ -391,7 +459,7 @@
     var my = { stop: false, done: false, controller: null, chars: chars };
     job = my;
     beginJob(chars);
-    probList.innerHTML = '<div class="probtag"><span class="ch">Qwen</span><span class="pc">瀏覽器 WebGPU</span></div>';
+    renderCandidates(probList, null);
     pplOut.textContent = '準備 Web 引擎…';
 
     function fail(reason) { finishJob(my); pplOut.textContent = reason; }
@@ -421,6 +489,8 @@
             renderOut(chars, true);
             renderTraj(chars);
             ctxline.textContent = '上下文：' + chars.slice(-CTX).join('');
+            var altBox = el('traceAlts');
+            if (altBox) altBox.innerHTML = '<span>' + esc(chars.slice(-3).join('') || '—') + '</span>';
           }
         }
         finishJob(my);
@@ -432,8 +502,10 @@
 
   /* ---------- 對話模式（Qwen） ---------- */
   var chatLog = el('chatlog'), chatIn = el('chatIn'), chatSend = el('chatSend'),
-      chatNote = el('chatNote');
+      chatNote = el('chatNote'), chatClear = el('chatClear');
   var chatBusy = false;
+  var chatHistory = [];
+  var CHAT_KEEP = 6;
 
   function addMsg(text, who, meta) {
     var d = document.createElement('div');
@@ -449,17 +521,14 @@
     return d;
   }
 
-  function ollamaChat(text) {
+  function ollamaChat(messages) {
     var tag = OLLAMA_TAGS[state.size];
     return fetch(OLLAMA_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: tag,
-        messages: [
-          { role: 'system', content: SYS },
-          { role: 'user', content: text }
-        ],
+        messages: messages,
         stream: false,
         options: { temperature: 0.55, top_k: 3, num_predict: 120 }
       })
@@ -475,13 +544,10 @@
     });
   }
 
-  function webChat(text) {
+  function webChat(messages) {
     return ensureWebEngine().then(function () {
       return state.wlEngine.chat.completions.create({
-        messages: [
-          { role: 'system', content: SYS },
-          { role: 'user', content: text }
-        ],
+        messages: messages,
         stream: false,
         temperature: 0.55,
         top_k: 3,
@@ -505,11 +571,16 @@
     chatSend.textContent = '寫…';
     var pending = addMsg('…', 'bot wait');
 
-    var reply = state.be === 'ollama' ? ollamaChat(text) : webChat(text);
+    var messages = [{ role: 'system', content: SYS }]
+      .concat(chatHistory.slice(-CHAT_KEEP), [{ role: 'user', content: text }]);
+    var reply = state.be === 'ollama' ? ollamaChat(messages) : webChat(messages);
     reply.then(function (out) {
       chatLog.removeChild(pending);
       if (!out) addMsg('（接不下去了，換個說法試試。）', 'bot');
-      else addMsg(out, 'bot', activeTag());
+      else {
+        addMsg(out, 'bot', activeTag());
+        chatHistory.push({ role: 'user', content: text }, { role: 'assistant', content: out });
+      }
       chatNote.textContent = '回答由 ' + (state.be === 'ollama' ? '本機 Ollama' : '瀏覽器 WebGPU') +
         ' 上的 ' + activeTag() + ' 產生。';
     }).catch(function (err) {
@@ -522,7 +593,16 @@
     });
   }
 
+  function clearChat() {
+    if (chatBusy) return;
+    chatHistory = [];
+    chatLog.innerHTML = '';
+    addMsg('你好，想問什麼就打一句，我接著寫。', 'bot');
+    chatNote.textContent = '回答由選定的 Qwen 後端即時產生；候選詞機率僅 Ollama 後端提供。';
+  }
+
   chatSend.addEventListener('click', sendChat);
+  chatClear.addEventListener('click', clearChat);
   chatIn.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') { e.preventDefault(); sendChat(); }
   });
