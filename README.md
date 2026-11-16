@@ -248,7 +248,7 @@ python3 build_html.py     # 合成 → 活字盤-中英語言模型.html
 | 3 | `qwen2.5:3b` | `Qwen2.5-3B-Instruct-q4f16_1-MLC` |
 | 7 | `qwen2.5:7b` | `Qwen2.5-7B-Instruct-q4f16_1-MLC` |
 
-**Ollama 後端**：頁面呼叫 `http://localhost:11434/api/chat`，生成以串流（NDJSON）逐字取回，溫度與 top-k 沿用操作台滑桿；請求帶上 `logprobs` 與 `top_logprobs: 10`，回應裡的候選 token 對數機率轉回自然機率後排成前 10 名分布，並用選中 token 的對數機率估算本次困惑度。
+**Ollama 後端**：操作台生成走 OpenAI 相容端點 `http://localhost:11434/v1/chat/completions`（SSE 串流逐字取回），溫度與 top-k 沿用操作台滑桿；請求帶上 `logprobs` 與 `top_logprobs: 10`，從 `choices[0].logprobs.content` 取出候選 token 對數機率，轉回自然機率後排成前 10 名分布，並用選中 token 的對數機率估算本次困惑度。對話模式仍走原生 `/api/chat`。原生 `/api/chat` 在本版本不回傳 logprobs，因此候選分布只在相容端點上提供。
 
 **Web 後端**：由瀏覽器 WebGPU 推論，動態載入 `@mlc-ai/web-llm`，首次執行從網路下載 Qwen 權重並由瀏覽器快取；需要 Chrome／Edge 113+ 且支援 WebGPU。7B 在瀏覽器通常需要較大顯示記憶體，記憶體不足時請改用 0.5 或 3。
 

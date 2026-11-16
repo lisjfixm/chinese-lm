@@ -27,9 +27,10 @@
     return esc(s);
   }
 
-  /* 解析 Ollama logprobs 回應：取出選中 token 與前 N 候選詞（logprob → 自然機率） */
+  /* 解析 OpenAI 相容端點回應：choices[0].logprobs.content[0]，取出選中 token 與前 N 候選詞 */
   function parseLogprobs(obj) {
-    var arr = obj && obj.logprobs;
+    var ch = obj && obj.choices && obj.choices[0];
+    var arr = ch && ch.logprobs && ch.logprobs.content;
     if (!Array.isArray(arr) || !arr.length) return null;
     var e = arr[arr.length - 1];
     if (!e) return null;
@@ -77,6 +78,7 @@
 
   /* ---------- 後端與模型對應 ---------- */
   var OLLAMA_URL = 'http://localhost:11434/api/chat';
+  var OLLAMA_OAI = 'http://localhost:11434/v1/chat/completions';
   var OLLAMA_TAGS = {
     '0.5': 'qwen2.5:0.5b',
     '3': 'qwen2.5:3b',
@@ -371,7 +373,7 @@
     (async function () {
       var resp;
       try {
-        resp = await fetch(OLLAMA_URL, {
+        resp = await fetch(OLLAMA_OAI, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: my.controller.signal,
@@ -382,10 +384,11 @@
               { role: 'user', content: prompt }
             ],
             stream: true,
-            options: {
-              temperature: temp, top_k: topk, num_predict: 120,
-              logprobs: true, top_logprobs: TOP_N
-            }
+            temperature: temp,
+            top_k: topk,
+            max_tokens: 120,
+            logprobs: true,
+            top_logprobs: TOP_N
           })
         });
       } catch (err) {
@@ -419,13 +422,16 @@
             var line = buf.slice(0, idx).trim();
             buf = buf.slice(idx + 1);
             if (!line) continue;
+            if (line.indexOf('data:') === 0) line = line.slice(5).trim();
+            if (line === '[DONE]') break;
             var obj;
             try { obj = JSON.parse(line); } catch (e) { continue; }
-            if (obj.error) { fail(obj.error); return; }
-            var delta = obj.message && obj.message.content ? obj.message.content : '';
+            if (obj.error) { fail(obj.error.message || obj.error); return; }
+            var ch = obj.choices && obj.choices[0];
+            var delta = ch && ch.delta && ch.delta.content ? ch.delta.content : '';
             if (delta) {
-              Array.from(delta).forEach(function (ch) {
-                if (chars.length < cap) chars.push(ch);
+              Array.from(delta).forEach(function (c) {
+                if (chars.length < cap) chars.push(c);
               });
               renderOut(chars, true);
               renderTraj(chars);
@@ -441,7 +447,7 @@
                 pplOut.textContent = '本次困惑度 ' + Math.exp(-my.logp / my.n).toFixed(1);
               }
             }
-            if (obj.done) break;
+            if (ch && ch.finish_reason) break;
           }
           if (my.stop) { reader.cancel(); break; }
         }
